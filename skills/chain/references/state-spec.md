@@ -66,6 +66,11 @@ Document kinds for `doc`:
 | `maester phase` | `{ "test": 17, "phase": "green", "title", "story", "layer", "ruleRef", "testCode": { "file", "lang", "code" }, "failure", "greenExample": { "file", "lang", "code", "added": [3, 4] }, "refactor", "refactorExample": [{ "file", "lang", "code", "added" }], "hint" }` | Only red→green→refactor, or the same phase to update content; omitted fields keep their value |
 | `maester complete <test id> <sha>` | — | After the refactor commit (or a skipped refactor): binds explicitly, archives the step, moves to the next test 🔴 (after the last one the feature is done). The sha must be HEAD or an ancestor; red cannot complete; repeating the same sha does nothing |
 
+**Who writes the red test** is a per-repo setting (`meta.red_by` in `maester.db`, toggled on the page with 「AI 自動寫紅燈」; `show` prints it on the Task heading, `progress` and the page's stepper reflect it). Unset means `ai`. Read it every time a red step starts; a toggle never changes a red step already under way.
+
+- `ai` (default): the AI writes the red test to disk, runs it, records it with `phase`, then moves to green.
+- `user`: the AI writes **no files**. It records `phase` red with `title` (the test name), `story` (the behavior the test verifies), `testCode` as a snippet (`{ "lang", "code" }`, no `file`) and the expected `failure`, then waits for `red_written`.
+
 `testCode`, `greenExample` and `refactorExample` may be a single file `{ file, lang, code }` or an array (one block per file on the page). When the code is already on disk (the red test, code the AI wrote for 「幫我 green」), send only `{ "file": "repo/relative/path" }`: `maester` reads the file and stores a snapshot, and `lang` defaults to the extension. Add `"lines": [start, end]` to keep only those lines (for example just the new test); `added` then uses the file's line numbers. Write `code` only for examples that exist nowhere else.
 
 `lesson` (optional) teaches the framework syntax and concepts of the step, shown under the selected test:
@@ -89,6 +94,7 @@ Always finish with `maester done <event id>`; until then the page shows the even
 |---|---|
 | `answer` | The server already recorded the answers; continue the council accordingly |
 | `approve_design` | Same as the user saying 「設計確定」 |
+| `red_written` | Only when red is written by the user: run the tests. Red for the right reason (the behavior is missing, or the first compile error of a new contract) → record the user's test with `phase` red `testCode: { "file", "lines" }`, then `phase` green with the green example. Passing, or red for the wrong reason → write a `hint` saying what is wrong and stay in red; never edit the user's test |
 | `tests_ran` | Run the tests; when all green, commit the green (`feat:`/`test:`, `Green-By: user`) and enter refactor |
 | `hint` | Write a `hint` in the same phase without giving away the full answer |
 | `help_green` | Same as 「幫我 green」: the AI writes the green, runs the tests, commits (`Green-By: ai`), then enters refactor |

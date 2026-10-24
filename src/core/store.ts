@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { Db } from './db.ts';
 import { reject } from './errors.ts';
 import { claimNextEvent, markEventDone, readEvents, requeueProcessing, submitEvent } from './events.ts';
-import { currentFeature, featureById, listFeatures, startFeature, switchFeature } from './features.ts';
+import { currentFeature, featureById, listFeatures, redBy, setRedBy, startFeature, switchFeature } from './features.ts';
 import { importFeature } from './import-feature.ts';
 import { dbPath, hasLegacyJson } from './paths.ts';
 import { addDoc, answer, ask, readDecisions, readDocs, setStage } from './roundtable.ts';
@@ -20,6 +20,8 @@ export class Store extends Db {
   feature(id: number) { return featureById(this, id); }
   current() { return currentFeature(this); }
   features() { return listFeatures(this); }
+  redBy() { return redBy(this); }
+  setRedBy(value: unknown) { return setRedBy(this, value); }
 
   addDoc(doc?: DocInput) { return addDoc(this, doc); }
   setStage(input?: StageInput) { return setStage(this, input); }

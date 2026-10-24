@@ -42,7 +42,7 @@ function emptyView(repo: string): View {
     repo, name: path.basename(repo), branch: git(repo, ['rev-parse', '--abbrev-ref', 'HEAD']).trim(), errors: [],
     state: null, plan: null, history: {}, roundtable: [], features: [], featureId: null, readonly: true, pending: [], processing: [],
     greens: { user: greens.filter(g => g === 'user').length, total: greens.length },
-    changes: changedFiles(repo),
+    changes: changedFiles(repo), redBy: 'ai',
   };
 }
 
@@ -85,6 +85,7 @@ export function buildView(repo: string, featureId?: string | null): View {
   }
   try {
     view.features = store.features();
+    view.redBy = store.redBy();
     const feature = store.feature(Number(featureId)) ?? store.current();
     if (feature) fillFeature(view, store, repo, feature);
   } finally { store.close(); }

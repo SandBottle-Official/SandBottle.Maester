@@ -85,15 +85,15 @@ const isTrustedEventRequest = (req: http.IncomingMessage) => {
   return hasKey(req.headers[KEY_HEADER]) && (!origin || LOCAL_ORIGINS.has(origin));
 };
 
-function submitEvent(repo: string, body: string, res: http.ServerResponse) {
-  let event: EventInput;
-  try { event = JSON.parse(body); }
+function applyToStore(repo: string, body: string, res: http.ServerResponse, apply: (store: Store, input: any) => unknown) {
+  let input: unknown;
+  try { input = JSON.parse(body); }
   catch { return send(res, 400, { error: 'bad json' }); }
   let store: Store | null = null;
   try {
     store = openStore(repo);
     if (!store) return send(res, 409, { error: '這個 repo 還沒有 maester.db' });
-    send(res, 200, store.submit(event));
+    send(res, 200, apply(store, input));
   } catch (error) {
     send(res, error instanceof Rejected ? 409 : 500, { error: messageOf(error) });
   } finally { store?.close(); }
@@ -117,13 +117,13 @@ function receiveAgent(req: http.IncomingMessage, res: http.ServerResponse, repo:
   });
 }
 
-function receiveEvent(req: http.IncomingMessage, res: http.ServerResponse, repo: string) {
+function receiveJson(req: http.IncomingMessage, res: http.ServerResponse, repo: string, apply: (store: Store, input: any) => unknown) {
   let body = '';
   req.on('data', chunk => {
     body += chunk;
     if (body.length > MAX_EVENT_BYTES) req.destroy();
   });
-  req.on('end', () => submitEvent(repo, body, res));
+  req.on('end', () => applyToStore(repo, body, res, apply));
 }
 
 function serveStatic(pathname: string, res: http.ServerResponse) {
@@ -147,7 +147,11 @@ const server = http.createServer((req, res) => {
     case '/api/event':
       if (req.method !== 'POST') break;
       if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
-      return isKnownRepo(repo) ? receiveEvent(req, res, repo) : send(res, 404, { error: 'unknown repo' });
+      return isKnownRepo(repo) ? receiveJson(req, res, repo, (store, event: EventInput) => store.submit(event)) : send(res, 404, { error: 'unknown repo' });
+    case '/api/red-by':
+      if (req.method !== 'POST') break;
+      if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
+      return isKnownRepo(repo) ? receiveJson(req, res, repo, (store, input) => store.setRedBy(input?.value)) : send(res, 404, { error: 'unknown repo' });
     case '/api/statusline':
       if (req.method !== 'POST') break;
       if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });

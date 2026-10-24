@@ -1,5 +1,5 @@
 import type { CodeFile, DecisionOut, DocOut, EventOut, FeatureSummary } from '../core/types.ts';
-import type { FeatureStage, Phase } from '../core/vocabulary.ts';
+import type { FeatureStage, Phase, RedBy } from '../core/vocabulary.ts';
 import type { ChangedFile, CommitView } from './git.ts';
 
 export type StepContent = {
@@ -56,4 +56,5 @@ export type View = {
   processing: EventOut[];
   greens: { user: number; total: number };
   changes: ChangedFile[];
+  redBy: RedBy;
 };

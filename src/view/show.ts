@@ -3,7 +3,7 @@ import { hasLegacyJson } from '../core/paths.ts';
 import { openStore, type Store } from '../core/store.ts';
 import type { FeatureRow, PlannedTestOut } from '../core/types.ts';
 import { PLUGIN_ROOT } from '../server/protocol.ts';
-import { PHASE_LINE, STAGE_LABEL } from '../core/vocabulary.ts';
+import { phaseLine, type RedBy, STAGE_LABEL } from '../core/vocabulary.ts';
 
 function otherFeaturesLine(store: Store) {
   const others = store.features().filter(f => !f.current);
@@ -21,17 +21,19 @@ function latestDocLines(store: Store, feature: FeatureRow) {
   return ['', '## 各種類最新的圓桌文件', ...[...latestByKind.values()].map(({ file, ...doc }) => `- ${file}：${JSON.stringify(doc)}`)];
 }
 
-function testLine(test: PlannedTestOut) {
+function testLine(test: PlannedTestOut, redBy: RedBy) {
   const step = test.step;
   const marker = step?.completed_at ? '- [x]' : step ? '→ [ ]' : '- [ ]';
-  const phase = step?.phase && !step.completed_at ? ` · ${PHASE_LINE[step.phase]}` : '';
+  const phase = step?.phase && !step.completed_at ? ` · ${phaseLine(step.phase, redBy)}` : '';
   return `${marker} ${test.name}（${test.id}）${phase}`;
 }
 
 function planLines(store: Store, feature: FeatureRow) {
   const plan = store.plan(feature.id);
   if (!plan.length) return [];
-  return ['', '## Task（[x] 完成、→ 目前步驟；括號內是測試 id）', ...plan.flatMap(task => [`### Task ${task.id} — ${task.title}`, ...task.tests.map(testLine)])];
+  const redBy = store.redBy();
+  return ['', `## Task（[x] 完成、→ 目前步驟；括號內是測試 id）· 紅燈測試：${redBy === 'user' ? '使用者自己寫（AI 只給名稱、行為與片段，不寫檔）' : 'AI 自動寫'}`,
+    ...plan.flatMap(task => [`### Task ${task.id} — ${task.title}`, ...task.tests.map(t => testLine(t, redBy))])];
 }
 
 function openEventLines(store: Store, feature: FeatureRow) {

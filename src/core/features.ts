@@ -1,6 +1,7 @@
 import { type Db, now } from './db.ts';
 import { reject } from './errors.ts';
 import type { FeatureRow, FeatureSummary, StartFeatureInput } from './types.ts';
+import { isOneOf, RED_BY, type RedBy } from './vocabulary.ts';
 
 export function currentFeatureId(db: Db): number | null {
   return Number(db.get<{ value: string }>("SELECT value FROM meta WHERE key = 'current'")?.value ?? 0) || null;
@@ -22,6 +23,15 @@ export function listFeatures(db: Db): FeatureSummary[] {
 
 export function makeCurrent(db: Db, id: number) {
   db.run("INSERT INTO meta(key, value) VALUES ('current', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", String(id));
+}
+
+// 跟著 repo（存在 maester.db），不跟著功能；沒設過就是 ai
+export const redBy = (db: Db): RedBy => db.get<{ value: string }>("SELECT value FROM meta WHERE key = 'red_by'")?.value === 'user' ? 'user' : 'ai';
+
+export function setRedBy(db: Db, value: unknown) {
+  if (!isOneOf(RED_BY, value)) reject(`紅燈測試只能由 ${RED_BY.join('、')} 寫`);
+  db.run("INSERT INTO meta(key, value) VALUES ('red_by', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", value);
+  return { redBy: value };
 }
 
 export function touchFeature(db: Db, id: number) {

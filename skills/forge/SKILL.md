@@ -5,7 +5,7 @@ description: Maester's outside-in TDD rhythm — API contract test first (use ca
 
 # Forge
 
-Every test is one link of the user's chain, and a link cannot be forged by someone else. **The AI writes the red test; the user writes the green.**
+Every test is one link of the user's chain, and a link cannot be forged by someone else. **The AI writes the red test (unless the repo's red-test setting hands it to the user); the user writes the green.**
 
 ## Language
 
@@ -38,7 +38,8 @@ Pin the current observable behavior first with **characterization tests** (Feath
 
 Small steps, one test per round.
 
-1. **Red** (AI): write the test and any test helpers it needs, run it, and confirm it fails because **the behavior is missing**, or with a compile error the first time a new contract appears. A test that passes immediately is not a step: pick one that drives new code, or fold it into the related step.
+1. **Red** (AI, or the user when the repo's red-test setting is `user`; see the state spec): write the test and any test helpers it needs, run it, and confirm it fails because **the behavior is missing**, or with a compile error the first time a new contract appears. A test that passes immediately is not a step: pick one that drives new code, or fold it into the related step.
+   When the setting is `user`, the AI writes no file: it records the test name, the behavior and a snippet with `maester phase`, and waits for 「測試寫好了」 (`red_written`); then it runs the tests and confirms the red as above. Every 「write the next red test」 in this skill and the state spec follows the setting.
 2. **Green** (user): give the smallest production-code **example** that would make it pass, without writing it to any file. When the user says it is green, run the tests to confirm.
 3. **Refactor** (user): give refactoring **examples** for production and test code, without writing them to files. Production code may be skipped when nothing is worth changing, but **test code is reviewed item by item every round**, and the refactoring direction states its conclusion in two parts, 「產品碼」 and 「測試碼」:
    - **One place to change**: if the interface changed next round (path, header, request/response JSON, test double type, how the SUT is built and the request assembled, Fixtures values), how many places would need editing? More than one means centralizing into a constant, alias, Scenario, helper or Fixtures.

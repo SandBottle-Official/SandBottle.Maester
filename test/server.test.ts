@@ -51,6 +51,13 @@ describe('server 與端到端', () => {
     assert.equal(stale.status, 409);
     assert.match((await stale.json()).error, /過期/);
     assert.equal((await fetch(`http://127.0.0.1:${port}/api/event?repo=${repo}`, { method: 'POST', body: '{}' })).status, 403);
+
+    const redBy = (value: string, headers: Record<string, string> = { [KEY_HEADER]: key }) =>
+      fetch(`http://127.0.0.1:${port}/api/red-by?repo=${repo}`, { method: 'POST', headers, body: JSON.stringify({ value }) });
+    assert.equal((await redBy('user', {})).status, 403);
+    assert.equal((await redBy('codex')).status, 409);
+    assert.equal((await redBy('user')).status, 200);
+    assert.equal((await (await fetch(`http://127.0.0.1:${port}/api/view?repo=${repo}&key=${key}`)).json()).redBy, 'user');
   });
 
   test('reads_require_the_key_and_pages_carry_security_headers', async () => {

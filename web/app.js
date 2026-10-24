@@ -72,7 +72,7 @@ async function send(type, payload) {
   const b = document.querySelector('.acts .next span'); if (b) b.textContent = why;
   return why;
 }
-const LABEL = { answer: '回答', approve_design: '設計確定', tests_ran: '跑測試', hint: '提示', help_green: '幫我寫綠燈', refactor_done: '重構好了', refactor_skip: '跳過重構', next_round: '下一輪', prompt: '你的訊息' };
+const LABEL = { answer: '回答', approve_design: '設計確定', tests_ran: '跑測試', hint: '提示', help_green: '幫我寫綠燈', refactor_done: '重構好了', refactor_skip: '跳過重構', next_round: '下一輪', prompt: '你的訊息', red_written: '測試寫好了' };
 // 送出後到 AI 處理完之前按鈕都鎖住；AI 中斷時可以「解除鎖定」重按
 const inFlight = v => [...(v.processing || []), ...(v.pending || [])].filter(e => !ui.unlocked.has(e.id));
 function busy(v) {
@@ -258,10 +258,15 @@ function historyStep(v, P, task, test) {
 }
 
 const STEPS = [['red', '紅', 'AI 寫測試'], ['green', '綠', '你實作'], ['refactor', '重構', '整理程式']];
-function stepper(ph) {
+function stepper(ph, redBy) {
   const at = STEPS.findIndex(([k]) => k === ph);
-  return `<ol class="stepper" aria-label="這一輪的階段">${STEPS.map(([k, n, d], i) => `<li class="${i < at ? 'past' : i === at ? 'now' : ''}" ${i === at ? 'aria-current="step"' : ''}><span class="dotmark"></span><span class="sn">${n}</span><span class="sd">${d}</span></li>`).join('')}</ol>`;
+  const steps = STEPS.map(([k, n, d]) => [k, n, k === 'red' && redBy === 'user' ? '你寫測試' : d]);
+  return `<ol class="stepper" aria-label="這一輪的階段">${steps.map(([k, n, d], i) => `<li class="${i < at ? 'past' : i === at ? 'now' : ''}" ${i === at ? 'aria-current="step"' : ''}><span class="dotmark"></span><span class="sn">${n}</span><span class="sd">${d}</span></li>`).join('')}</ol>`;
 }
+// 跟著 repo；按了直接寫進 maester.db，不經過 AI，下一個紅燈才生效
+let redByNote = '';
+const redByToggle = v => v.readonly ? '' : `<button class="link" data-red-by="${v.redBy === 'user' ? 'ai' : 'user'}" aria-pressed="${v.redBy !== 'user'}"
+  title="開著：AI 每一輪直接寫紅燈測試。關著：AI 只給測試名稱、要驗的行為和片段，你自己寫。從下一個紅燈開始生效">AI 自動寫紅燈：${v.redBy === 'user' ? '關' : '開'}${redByNote ? `（${esc(redByNote)}）` : ''}</button>`;
 function tddStep(v, P) {
   const s = P.cur, ph = s?.phase, lock = busy(v);
   if (!s) return `<aside class="panel step"><p class="empty">${v.state?.done ? '這個功能已完成。打開左上角清單看過往紀錄。' : 'AI 還沒寫入目前這一步。'}</p></aside>`;
@@ -269,12 +274,15 @@ function tddStep(v, P) {
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button><button class="link" data-ev="help_green" ${lock ? 'disabled' : ''}>直接幫我寫綠燈</button></div>`
     : ph === 'refactor' ? `<button class="primary" data-ev="refactor_done" ${lock ? 'disabled' : ''} title="AI 跑測試、commit 重構，再寫下一個紅燈">重構好了，跑測試並 commit</button>
       <div class="minor"><button class="link" data-ev="refactor_skip" ${lock ? 'disabled' : ''} title="不 commit，直接進下一個測試">這輪不重構</button></div>`
-    : `<p class="note">AI 正在寫這一輪的紅燈測試。</p>`;
+    : v.redBy !== 'user' ? `<p class="note">AI 正在寫這一輪的紅燈測試。</p>`
+    : s.testCode ? `<button class="primary" data-ev="red_written" ${lock ? 'disabled' : ''} title="AI 跑測試，確認因為行為還沒實作而紅，再進綠燈">測試寫好了，跑測試</button>
+      <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button></div>`
+    : `<p class="note">AI 正在準備這一輪要你寫的測試。</p>`;
   const note = lock;
   const changed = v.changes.filter(c => !c.test);
   return `<aside class="panel step" aria-label="目前這一步">${busyBar(v)}
     <section class="head">
-      ${stepper(ph)}
+      ${stepper(ph, v.redBy)}${redByToggle(v)}
       <h2>${esc(s.title || P.tasks[P.ti]?.tests[s.test - 1]?.name || '')}</h2>
       ${s.story ? `<p class="lede">${esc(s.story)}</p>` : ''}
     </section>
@@ -387,6 +395,11 @@ app.addEventListener('click', e => {
   if (t.dataset.tab) { ui.tab = t.dataset.tab; return render(); }
   if ('back' in t.dataset) { Object.assign(ui, { mode: null, task: null, step: null }); return render(); }
   if (t.dataset.ev) return send(t.dataset.ev);
+  if (t.dataset.redBy) {
+    fetch(`/api/red-by?repo=${encodeURIComponent(REPO)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-maester-key': KEY }, body: JSON.stringify({ value: t.dataset.redBy }) })
+      .then(async r => { redByNote = r.ok ? '' : (await r.json().catch(() => ({}))).error || `切換失敗（${r.status}）`; render(); });
+    return;
+  }
   if ('statusline' in t.dataset) {
     statuslineNote = '設定中…'; render();
     fetch('/api/statusline', { method: 'POST', headers: { 'x-maester-key': KEY } })
