@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-10-25
+
+### Forge
+
+- Choose who writes the red test, per repo: the workbench's 「AI 自動寫紅燈」 toggle is stored in `.maester/maester.db` and takes effect from the next red step. Unset repos keep the AI writing it.
+- With the toggle off, the AI writes no file: it gives the test name, the behaviour to verify and a snippet, then waits for 「測試寫好了，跑測試」 (`red_written`). It runs the tests and moves to green only when the red fails for the right reason; otherwise it leaves a hint and stays in red without touching your test.
+- `maester show`, `maester progress` and the workbench stepper show who writes the red test.
+
 ## 1.1.2 — 2026-10-25
 
 ### Workbench
