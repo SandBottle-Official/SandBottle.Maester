@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2 — 2026-10-25
+
+### Fixes
+
+- Long file paths on code blocks no longer break the header: the path stays on one line and is shortened from the left so the file name stays visible, the full path shows on hover, and 「複製」 stays in place.
+
 ## 1.2.1 — 2026-10-25
 
 ### Fixes
