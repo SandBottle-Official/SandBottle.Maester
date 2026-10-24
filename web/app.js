@@ -132,15 +132,23 @@ const kTokens = n => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
 // 用量要靠 statusline；沒接上時給一顆按鈕，按了才改 Claude Code 設定
 const usageButton = v => v.statusline || v.readonly ? '' : `<button class="link" data-statusline title="你還原或換掉了 statusline，所以沒有用量；按這裡重新接上，原本的 statusline 照常顯示">${esc(statuslineNote || '顯示用量')}</button>`;
 let statuslineNote = '';
+// 跟 statusline 一樣：用量分級上色，重置倒數直接寫在數字旁
+const usageLevel = used => used >= 80 ? 'bad' : used >= 50 ? 'warn' : 'ok';
+function untilReset(w) {
+  if (!w?.resetsAt) return '';
+  const m = Math.max(0, Math.round((w.resetsAt * 1000 - Date.now()) / 60000)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60);
+  return d ? `${d}d${h}h` : h ? `${h}h${m % 60}m` : `${m}m`;
+}
 function agentChip(a) {
   if (!a) return '';
-  const parts = [a.context != null ? ['context', pct(a.context), a.contextSize ? `context window ${a.contextSize.toLocaleString()} tokens` : '']
-      : a.contextTokens != null && ['context', kTokens(a.contextTokens), '這一輪送進模型的 token 數'],
-    a.fiveHour && ['5h', pct(a.fiveHour.used), `5 小時用量${resetAt(a.fiveHour)}`],
-    a.sevenDay && ['週', pct(a.sevenDay.used), `週用量${resetAt(a.sevenDay)}`],
-    a.cost != null && ['$', a.cost.toFixed(2), '這個 session 的花費（USD）']].filter(Boolean);
+  // 借來的用量標 ~，提示是其他 session 回報的、可能不是最新
+  const borrowed = a.limitsAt ? `；${Math.round((Date.now() - a.limitsAt) / 60000)} 分鐘前取自其他 session 的 statusline` : '';
+  const usage = (k, w, label) => w && `<span class="usage ${usageLevel(w.used)}${borrowed ? ' borrowed' : ''}" title="${esc(`${label}${resetAt(w)}${borrowed}`)}">${k}<i class="bar"><i style="width:${Math.min(100, Math.max(0, w.used))}%"></i></i><span>${borrowed ? '~' : ''}${pct(w.used)}</span>${untilReset(w) ? `<small>${untilReset(w)}</small>` : ''}</span>`;
+  const context = a.context != null ? `<span class="ctx" title="${esc(a.contextSize ? `context window ${a.contextSize.toLocaleString()} tokens` : 'context')}">context ${pct(a.context)}</span>`
+    : a.contextTokens != null ? `<span class="ctx" title="這一輪送進模型的 token 數；沒有 statusline，所以不知道 context 上限">context ${kTokens(a.contextTokens)} tokens</span>` : '';
+  const cost = a.cost != null ? `<span title="這個 session 的花費（USD）">$${a.cost.toFixed(2)}</span>` : '';
   const ago = Math.round((Date.now() - a.at) / 60000);
-  return `<span class="agent-chip" title="${esc(`${a.model || 'agent'} · ${ago ? `${ago} 分鐘前更新` : '剛更新'}`)}">${a.model ? `<b>${esc(a.model)}</b>` : ''}${parts.map(([k, n, t]) => `<span title="${esc(t)}">${k} ${n}</span>`).join('')}</span>`;
+  return `<span class="agent-chip" title="${esc(`${a.model || 'agent'} · ${ago ? `${ago} 分鐘前更新` : '剛更新'}`)}">${a.model ? `<b>${esc(a.model)}</b>` : ''}${context}${usage('5h', a.fiveHour, '5 小時用量') || ''}${usage('週', a.sevenDay, '週用量') || ''}${cost}</span>`;
 }
 
 function road(v, P) {

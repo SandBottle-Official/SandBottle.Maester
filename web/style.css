@@ -4,7 +4,7 @@
   --border:#2b2540; --rule:#221d31; --control:#4a4166;
   --text:#f6f4fb; --muted:#c3bdd6; --faint:#958ead;
   --brand:#d8d3e8; --mark:#d8d3e8; --link:#cfc8e6; --link-fill:#e9e5f5;
-  --red:#ff4d5a; --green:#07c480; --blue:#009fff;
+  --red:#ff4d5a; --green:#07c480; --blue:#009fff; --amber:#ffb020;
   /* the phase colour drives the step: red while the AI writes the test, green on your turn, blue in refactor */
   --phase:var(--green); --phase-field:#07c4801f; --phase-ink:#5fe0ae;
   --radius-card:8px; --radius-control:6px; --radius-panel:16px;
@@ -23,7 +23,7 @@
   --ground:#f4f2fb; --surface:#ffffff; --raised:#f3f1fa; --active:#e9e5f7;
   --border:#e4e0f2; --rule:#efecf8; --control:#cfc8e8;
   --text:#16131f; --muted:#4a4560; --faint:#6b6680;
-  --red:#d52c36; --green:#0b6b43; --blue:#1a6fd1;
+  --red:#d52c36; --green:#0b6b43; --blue:#1a6fd1; --amber:#9a5b00;
   --phase:var(--green); --phase-field:#14905c1a; --phase-ink:#0e6e46;
   --brand:#5b3fd6; --mark:#5b3fd6; --link:#5b3fd6; --link-fill:#5b3fd6;
   --sel-bg:#ffffff; --lede:#f1edff; --track:#ffffff26; --on-phase:#ffffff; --hover-2:#ddd7f3;
@@ -296,3 +296,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .agent-chip{display:inline-flex;align-items:center;gap:10px;height:28px;padding:0 12px;border-radius:14px;background:var(--surface);color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .agent-chip b{font-weight:500;color:var(--text)}
 @media (max-width:720px){.agent-chip b{display:none}}
+.usage{display:inline-flex;align-items:center;gap:6px;--level:var(--green)}
+.usage.warn{--level:var(--amber)} .usage.bad{--level:var(--red)}
+.usage .bar{display:inline-block;width:44px;height:6px;border-radius:3px;background:var(--active);overflow:hidden}
+.usage .bar i{display:block;height:100%;background:var(--level)}
+.usage small{font-size:12px;color:var(--level)}
+.usage.borrowed .bar{opacity:.55}
+/* 手機上留用量和倒數，context 讓位 */
+@media (max-width:720px){.usage .bar,.agent-chip .ctx{display:none} .agent-chip{gap:8px;padding:0 10px}}
