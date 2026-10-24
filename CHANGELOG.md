@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0 — 2026-10-25
+
+### Fewer tokens
+
+- The AI writes each piece of code once: `maester phase` takes `{ "file" }` for code already on disk (the red test, code written for 「幫我 green」) and stores a snapshot, optionally only `lines: [start, end]`.
+- Forge no longer repeats test code or examples in the terminal reply; the workbench shows them.
+- Documented that local Claude Code sessions have no time limit on the background `wait`, so it is not restarted every two hours.
+
+### Workbench
+
+- Refactoring directions can carry example code, one block per file with copy.
+- The TDD view follows the current step and phase to the matching tab.
+- Shows the agent's context and 5-hour/weekly usage, keeping your own statusline output.
+
 ## 1.0.0 — 2026-10-24
 
 First public release.
