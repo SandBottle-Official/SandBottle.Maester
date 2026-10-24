@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 — 2026-10-25
+
+### Fixes
+
+- Sessions without a statusline (Agent SDK / stream-json hosts) now show the model and context on the workbench. The hook always reports from the transcript; the server ignores it while the statusline reported in the last five minutes. 5-hour/weekly usage and cost still need the statusline.
+- Note: these hosts count as unattended, so a background `wait` there stops after at most two hours and is started again.
+
 ## 1.1.0 — 2026-10-25
 
 ### Fewer tokens
