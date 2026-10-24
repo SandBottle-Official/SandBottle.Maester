@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <linearGradient id="rim" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#6F62A8"/><stop offset="1" stop-color="#A79BD6"/></linearGradient>
+  <linearGradient id="sand" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#4A3F86"/><stop offset="1" stop-color="#7465C0"/></linearGradient>
+  <clipPath id="inside"><path transform="rotate(-45 512 512)" d="M256 337 H648 C730 337 775 441 795 441 H860 V583 H795 C775 583 730 687 648 687 H256 A86 86 0 0 1 170 601 V423 A86 86 0 0 1 256 337 Z"/></clipPath>
+</defs>
+<g id="glass" transform="rotate(-45 512 512)"><path d="M256 337 H648 C730 337 775 441 795 441 H860 V583 H795 C775 583 730 687 648 687 H256 A86 86 0 0 1 170 601 V423 A86 86 0 0 1 256 337 Z" fill="#FFFFFF" fill-opacity="0.5"/></g>
+<g id="sand" clip-path="url(#inside)">
+  <path d="M100 560 C300 520 420 600 560 540 S820 470 980 470 V1024 H100Z" fill="#C9C0EA" fill-opacity="0.9"/>
+  <path d="M100 600 C300 560 430 640 570 585 S820 520 980 520 V1024 H100Z" fill="url(#sand)"/>
+</g>
+<g id="bottle" transform="rotate(-45 512 512)">
+  <path d="M256 337 H648 C730 337 775 441 795 441 H860 V583 H795 C775 583 730 687 648 687 H256 A86 86 0 0 1 170 601 V423 A86 86 0 0 1 256 337 Z" fill="none" stroke="url(#rim)" stroke-width="28" stroke-linejoin="round"/>
+  <rect x="863" y="415" width="36" height="192" rx="18" fill="#FFFFFF" stroke="#8E82C4" stroke-width="22"/>
+  <path d="M262 382 H620" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="22" stroke-linecap="round"/>
+</g>
+</svg>

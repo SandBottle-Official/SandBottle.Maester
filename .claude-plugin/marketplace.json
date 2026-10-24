@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "maester",
+  "description": "SandBottle Maester — Small Council design and outside-in TDD you forge yourself.",
+  "owner": {
+    "name": "SandBottle-Official",
+    "url": "https://github.com/SandBottle-Official"
+  },
+  "plugins": [
+    {
+      "name": "maester",
+      "description": "Small Council design review and outside-in TDD where you write the green.",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}

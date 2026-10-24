@@ -1,0 +1,42 @@
+{
+  "name": "maester",
+  "version": "1.0.0",
+  "description": "Small Council design review and outside-in TDD where the AI writes the red test and you forge the green — with a local workbench that shows every link of your chain.",
+  "author": {
+    "name": "NewtonZhang511061",
+    "url": "https://github.com/NewtonZhang511061"
+  },
+  "homepage": "https://github.com/SandBottle-Official/SandBottle.Maester",
+  "repository": "https://github.com/SandBottle-Official/SandBottle.Maester",
+  "license": "MIT",
+  "keywords": [
+    "tdd",
+    "outside-in",
+    "ddd",
+    "design-review",
+    "decision-table",
+    "sandbottle"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "SandBottle Maester",
+    "shortDescription": "Small Council design and TDD you forge yourself",
+    "longDescription": "Three masters and a Skeptic challenge your design until it becomes a Decision Table; then the AI writes one failing test at a time and you write the code that makes it pass.",
+    "developerName": "SandBottle",
+    "category": "Coding",
+    "capabilities": [
+      "Instructions",
+      "Lifecycle hooks"
+    ],
+    "websiteURL": "https://github.com/SandBottle-Official/SandBottle.Maester",
+    "defaultPrompt": [
+      "Convene the Small Council to design this feature",
+      "Start the next TDD task",
+      "Open the Maester workbench"
+    ],
+    "brandColor": "#7B68C8",
+    "composerIcon": "./assets/codex-icon.png",
+    "logo": "./assets/icon.png"
+  }
+}
