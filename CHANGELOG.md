@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.1 — 2026-10-25
+
+### Fixes
+
+- The workbench no longer stalls on repos with many finished steps: commit details are cached by sha instead of re-running git for every step each second, so buttons and the red-test toggle respond at once.
+- The AI keeps `maester wait` running for as long as the feature is not done, so messages sent from the page and 🔴 steps written by the user are never left without a listener.
+
+### Workbench
+
+- 「AI 自動寫紅燈」 is a switch and flips as soon as you press it.
+
 ## 1.2.0 — 2026-10-25
 
 ### Forge
