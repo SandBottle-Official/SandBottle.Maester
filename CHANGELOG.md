@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.2 — 2026-10-25
+
+### Workbench
+
+- Usage reads like the statusline: 5-hour and weekly usage have small bars coloured green, amber and red at 50% and 80%, with the time until reset beside them.
+- Sessions without a statusline (Agent SDK / stream-json hosts) borrow the account's 5-hour and weekly usage from any session's statusline, marked with `~` and the age of the reading; windows that have already reset are not borrowed.
+- Context shown only as tokens reads `68k tokens`, so it is not mistaken for a percentage.
+- On narrow screens the bars and context step aside so usage and reset times still fit.
+
 ## 1.1.1 — 2026-10-25
 
 ### Fixes
