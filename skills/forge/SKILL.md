@@ -50,7 +50,7 @@ The AI writes the code of a step itself only when the user says 「幫我 green�
 
 Open every round with one or two sentences in the business's ubiquitous language (customers, roles, stores, subscriptions, permissions…, not class names): which business behavior the system gains this round and why it is needed.
 
-Report only: that business sentence, the test name, why it is red, and the example code or the files changed. No explanations, no lists of possibilities. Plans contain no commit steps.
+Report only: that business sentence, the test name, why it is red, or the files changed. Test code, green and refactor examples go only into `maester phase`; the workbench renders them, so never repeat code in the reply. No explanations, no lists of possibilities. Plans contain no commit steps.
 
 ## Progress on the workbench
 
@@ -60,7 +60,7 @@ When the user says 「開始 Task N」「繼續」 or a new conversation resumes
 
 Record every phase change immediately with `maester phase` (with the current test id), without waiting for a commit:
 
-- After running red: `phase: red` with the business sentence, test code, failure output, green example and the Rule it covers.
+- After running red: `phase: red` with the business sentence, test code (only `{ "file" }`; `maester` reads it from disk), failure output (just the lines that show why it is red), green example and the Rule it covers.
 - Waiting for the user: `phase: green`.
 - Entering refactor: `phase: refactor` with the refactoring direction in `refactor` (「產品碼」 and 「測試碼」 as separate paragraphs, blank line between) and the example code in `refactorExample`, one entry per file.
 - Giving a hint: same phase, write `hint`.

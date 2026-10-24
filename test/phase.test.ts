@@ -89,4 +89,25 @@ describe('換階段', () => {
     S.rejected(['phase'], { test: tests[0].id, phase: 'green', greenExample: { file: 'a.ts', lang: 'ts', code: 'a', added: [markup] } }, /added/);
     S.rejected(['phase'], { test: tests[0].id, phase: 'green', greenExample: [{ file: 'a.ts', lang: 'ts', code: 'a', added: [1, markup] }] }, /added/);
   });
+
+  test('只給檔名不給程式碼_從 repo 讀檔存成快照', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.w('test/a.test.ts', 'expect(a).toBe(1)\n');
+    S.w('src/a.ts', 'export const a = 1\n');
+    S.ok(['phase'], { test: tests[0].id, phase: 'red', testCode: { file: 'test/a.test.ts' } });
+    S.toPhase(tests[0].id, 'green');
+    S.ok(['phase'], { test: tests[0].id, phase: 'green', greenExample: [{ file: 'src/a.ts', added: [1] }] });
+    S.w('test/a.test.ts', '改過了\n');
+    const t = S.view().state.tdd;
+    assert.deepEqual(t.testCode, { file: 'test/a.test.ts', lang: 'ts', code: 'expect(a).toBe(1)\n' });
+    assert.deepEqual(t.greenFiles, [{ file: 'src/a.ts', lang: 'ts', code: 'export const a = 1\n', added: [1] }]);
+  });
+
+  test('只給檔名_檔案不在 repo 裡或不存在就拒絕', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.rejected(['phase'], { test: tests[0].id, phase: 'red', testCode: { file: '../outside.ts' } }, /repo/);
+    S.rejected(['phase'], { test: tests[0].id, phase: 'red', testCode: { file: 'missing.ts' } }, /missing\.ts/);
+  });
 });

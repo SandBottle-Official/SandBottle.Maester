@@ -66,7 +66,7 @@ Document kinds for `doc`:
 | `maester phase` | `{ "test": 17, "phase": "green", "title", "story", "layer", "ruleRef", "testCode": { "file", "lang", "code" }, "failure", "greenExample": { "file", "lang", "code", "added": [3, 4] }, "refactor", "refactorExample": [{ "file", "lang", "code", "added" }], "hint" }` | Only red→green→refactor, or the same phase to update content; omitted fields keep their value |
 | `maester complete <test id> <sha>` | — | After the refactor commit (or a skipped refactor): binds explicitly, archives the step, moves to the next test 🔴 (after the last one the feature is done). The sha must be HEAD or an ancestor; red cannot complete; repeating the same sha does nothing |
 
-`testCode`, `greenExample` and `refactorExample` may be a single file `{ file, lang, code }` or an array (one block per file on the page).
+`testCode`, `greenExample` and `refactorExample` may be a single file `{ file, lang, code }` or an array (one block per file on the page). When the code is already on disk (the red test, code the AI wrote for 「幫我 green」), send only `{ "file": "repo/relative/path" }`: `maester` reads the file and stores a snapshot, and `lang` defaults to the extension. Write `code` only for examples that exist nowhere else.
 
 `lesson` (optional) teaches the framework syntax and concepts of the step, shown under the selected test:
 `{ "intro": "一句話", "topics": [{ "name": "Hono", "points": [{ "term": "app.post(path, handler)", "analog": "C#：[HttpPost]", "text": "說明，可用 `行內程式碼`", "code": { "lang": "ts", "code": "…" } }] }] }`. `analog` compares with a language the user already knows and names that language; `code` is optional.
