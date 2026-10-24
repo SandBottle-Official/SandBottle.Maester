@@ -59,7 +59,7 @@ function codeBlock(label, c) {
   if (!c?.code) return '';
   const added = (c.added || []).filter(Number.isInteger);
   return `<div class="code" data-raw="${esc(c.code)}" data-lang="${esc(c.lang)}" data-added="${esc(added.join(','))}">
-    <div class="bar"><span>${esc(label)}</span><button class="copy">複製</button></div>
+    <div class="bar"><span title="${esc(label)}">${esc(label)}</span><button class="copy">複製</button></div>
     <div class="body"><pre>${c.code.split('\n').map((l, i) => `<span class="ln${added.includes(i + 1) ? ' add' : ''}">${esc(l) || ' '}</span>`).join('')}</pre></div></div>`;
 }
 
