@@ -296,6 +296,12 @@ function render() {
   ui.mode ??= v.state?.stage === 'roundtable' ? 'rt' : v.state?.stage === 'tdd' || P.tasks.length ? 'tdd' : v.roundtable.length ? 'rt' : null;
   ui.task ??= P.cur?.task ?? P.tasks[0]?.id;
   const phase = v.state?.stage === 'tdd' ? P.cur?.phase : null;
+  // 進到新的一步或新的階段時，右側分頁跟著切：紅、綠看測試，重構看重構方向
+  const stepKey = P.cur ? `${P.cur.testId}:${P.cur.phase}` : null;
+  if (stepKey !== lastStep) {
+    if (!ui.step) ui.tab = PHASE_TAB[P.cur?.phase] || 'test';
+    lastStep = stepKey;
+  }
   document.title = `Maester · ${v.state?.feature || v.plan?.feature || v.name}`;
   document.body.className = phase && phase !== 'green' ? `phase-${phase}` : '';
   const err = v.errors.map(e => `<p class="banner" style="margin:0 8px 8px">${esc(e)}</p>`).join('') ;
@@ -319,6 +325,9 @@ function render() {
   highlightAll();
 }
 let lastCtx = null;
+/** @type {string | null | undefined} */
+let lastStep;
+const PHASE_TAB = { red: 'test', green: 'test', refactor: 'refactor' };
 
 async function renderProjects() {
   const list = await (await fetch(`/api/projects?key=${encodeURIComponent(KEY)}`)).json();
