@@ -7,7 +7,7 @@ import { maesterHome, port } from '../core/paths.ts';
 import { openStore, type Store } from '../core/store.ts';
 import type { EventInput } from '../core/types.ts';
 import { buildView } from '../view/build-view.ts';
-import { type AgentInfo, pickAgent } from './agent.ts';
+import { type AgentInfo, nextAgent, pickAgent } from './agent.ts';
 import { KEY_HEADER, type Ping, PLUGIN_ROOT, PLUGIN_VERSION, PROTOCOL } from './protocol.ts';
 import { readKey, readProjects } from './projects.ts';
 import { installStatusline, statuslineInstalled } from './statusline.ts';
@@ -105,7 +105,7 @@ function receiveAgent(req: http.IncomingMessage, res: http.ServerResponse, repo:
     if (body.length > MAX_EVENT_BYTES) req.destroy();
   });
   req.on('end', () => {
-    try { agents.set(repo, pickAgent(JSON.parse(body))); }
+    try { agents.set(repo, nextAgent(agents.get(repo), pickAgent(JSON.parse(body)))); }
     catch { return send(res, 400, { error: 'bad json' }); }
     send(res, 200, { ok: true });
   });

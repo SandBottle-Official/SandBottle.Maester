@@ -1,6 +1,6 @@
 // Claude Code statusline 的 JSON 只挑頁面要顯示的欄位，留在 server 記憶體，不進 maester.db。
 export type AgentWindow = { used: number; resetsAt: number | null };
-export type AgentInfo = { model: string | null; context: number | null; contextSize: number | null; contextTokens: number | null; cost: number | null; fiveHour: AgentWindow | null; sevenDay: AgentWindow | null; at: number };
+export type AgentInfo = { model: string | null; context: number | null; contextSize: number | null; contextTokens: number | null; cost: number | null; fiveHour: AgentWindow | null; sevenDay: AgentWindow | null; source: 'statusline' | 'hook'; at: number };
 
 const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : null;
 const obj = (v: unknown): Record<string, unknown> => v && typeof v === 'object' ? v as Record<string, unknown> : {};
@@ -23,8 +23,17 @@ export function pickAgent(raw: unknown, at = Date.now()): AgentInfo {
     context: num(ctx.used_percentage), contextSize: num(ctx.context_window_size), contextTokens: usedTokens(ctx.current_usage),
     cost: num(obj(r.cost).total_cost_usd),
     fiveHour: window(limits.five_hour), sevenDay: window(limits.seven_day),
+    source: r.source === 'hook' ? 'hook' : 'statusline',
     at,
   };
+}
+
+const STATUSLINE_FRESH_MS = 5 * 60_000;
+
+// SDK／stream-json 模式不跑 statusline，只能靠 hook；statusline 剛回報過時它的資料比較完整，hook 不蓋掉
+export function nextAgent(prev: AgentInfo | undefined, next: AgentInfo): AgentInfo {
+  const statuslineFresh = prev?.source === 'statusline' && next.at - prev.at < STATUSLINE_FRESH_MS;
+  return next.source === 'hook' && statuslineFresh ? prev : next;
 }
 
 // hook 只拿得到 transcript：找最後一則主對話（非 subagent）的回應，轉成 statusline 的形狀，好走同一條路

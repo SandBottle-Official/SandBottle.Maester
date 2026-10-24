@@ -8,7 +8,7 @@ import { adoptLegacyData, adoptLegacyHome } from '../migrate/legacy-workbench.ts
 import { ensureServer, openerFor, ping, postAgent } from '../server/client.ts';
 import { statuslineFromTranscript } from '../server/agent.ts';
 import { addProject, readKey } from '../server/projects.ts';
-import { autoInstallStatusline, originalCommand, repointStatusline, statuslineInstalled, uninstallStatusline } from '../server/statusline.ts';
+import { autoInstallStatusline, originalCommand, repointStatusline, uninstallStatusline } from '../server/statusline.ts';
 import { repoRoot } from '../view/git.ts';
 import { progressLine } from '../view/progress.ts';
 import { openEventsReminder, showText } from '../view/show.ts';
@@ -92,14 +92,13 @@ async function forwardStatusline(text: string) {
   if (repo) await postAgent(repo, readKey(), text);
 }
 
-// 沒裝 statusline 時靠 hook：從 transcript 估 context；裝了就交給 statusline，資料比較完整
+// SDK／stream-json 模式不跑 statusline，所以 hook 一律從 transcript 估 context；statusline 剛回報過時 server 會忽略這份
 async function forwardHook() {
-  if (statuslineInstalled()) return;
   const input = JSON.parse(readStdin() || '{}');
   const repo = repoRoot(input.cwd || process.cwd());
   if (!repo || !fs.existsSync(dataDir(repo)) || !input.transcript_path) return;
   const info = statuslineFromTranscript(tailOf(input.transcript_path));
-  if (info) await postAgent(repo, readKey(), JSON.stringify(info));
+  if (info) await postAgent(repo, readKey(), JSON.stringify({ ...info, source: 'hook' }));
 }
 
 // 頁面按「顯示用量」後的 statusline：先轉給 server，再照跑使用者原本的指令；沒有就印進度
