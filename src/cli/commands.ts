@@ -17,7 +17,20 @@ function realPath(file: string) {
 }
 
 // 程式碼已經在磁碟上時只傳檔名，由這裡讀檔存成快照，AI 不必再輸出一次
-function readCodeFile(repo: string, entry: CodeFile): CodeFile {
+type FileRef = CodeFile & { lines?: unknown };
+
+// lines 只取 [起, 迄] 那幾行；added 用檔案行號給，換算成片段裡的行號
+function sliceLines(entry: FileRef, text: string): CodeFile {
+  const { lines, ...code } = entry;
+  if (lines === undefined) return { ...code, code: text };
+  const all = text.split('\n');
+  const [start, end] = Array.isArray(lines) ? lines : [];
+  const valid = Array.isArray(lines) && lines.length === 2 && Number.isInteger(start) && Number.isInteger(end) && start >= 1 && start <= end && end <= all.length;
+  if (!valid) reject(`${entry.file} 的 lines 要是 [起, 迄] 兩個行號，且在檔案範圍內`);
+  return { ...code, code: all.slice(start - 1, end).join('\n'), ...(code.added && { added: code.added.map(n => n - start + 1) }) };
+}
+
+function readCodeFile(repo: string, entry: FileRef): CodeFile {
   if (entry.code != null || !entry.file) return entry;
   const root = realPath(repo);
   const inside = (file: string) => {
@@ -26,7 +39,7 @@ function readCodeFile(repo: string, entry: CodeFile): CodeFile {
   };
   // 先擋 ../，再擋指到 repo 外面的 symlink
   const file = inside(realPath(inside(path.resolve(root, entry.file))));
-  return { ...entry, lang: entry.lang ?? (path.extname(file).slice(1) || null), code: fs.readFileSync(file, 'utf8') };
+  return sliceLines({ ...entry, lang: entry.lang ?? (path.extname(file).slice(1) || null) }, fs.readFileSync(file, 'utf8'));
 }
 
 const readCode = (repo: string, content: CodeFile | CodeFile[] | undefined) =>

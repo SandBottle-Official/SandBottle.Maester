@@ -104,6 +104,26 @@ describe('換階段', () => {
     assert.deepEqual(t.greenFiles, [{ file: 'src/a.ts', lang: 'ts', code: 'export const a = 1\n', added: [1] }]);
   });
 
+  test('只給檔名加行號範圍_只存那幾行_added 用檔案行號', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.w('test/a.test.ts', 'import\n\ntest 1\ntest 2\nend\n');
+    S.ok(['phase'], { test: tests[0].id, phase: 'red', testCode: { file: 'test/a.test.ts', lines: [3, 4] } });
+    S.toPhase(tests[0].id, 'green');
+    S.ok(['phase'], { test: tests[0].id, phase: 'green', greenExample: [{ file: 'test/a.test.ts', lines: [3, 5], added: [4] }] });
+    const t = S.view().state.tdd;
+    assert.deepEqual(t.testCode, { file: 'test/a.test.ts', lang: 'ts', code: 'test 1\ntest 2' });
+    assert.deepEqual(t.greenFiles, [{ file: 'test/a.test.ts', lang: 'ts', code: 'test 1\ntest 2\nend', added: [2] }]);
+  });
+
+  test('行號範圍不合理_拒絕', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.w('test/a.test.ts', 'a\nb\n');
+    for (const lines of [[2, 1], [0, 1], [1, 9], ['1', 2]])
+      S.rejected(['phase'], { test: tests[0].id, phase: 'red', testCode: { file: 'test/a.test.ts', lines } }, /lines/);
+  });
+
   test('只給檔名_檔案不在 repo 裡或不存在就拒絕', () => {
     const S = scenario();
     const { tests } = S.inTdd();
