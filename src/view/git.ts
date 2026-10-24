@@ -63,11 +63,18 @@ export function greenByTrailers(repo: string, limit = 200): string[] {
   return git(repo, ['log', '-n', String(limit), '--format=%(trailers:key=Green-By,valueonly,separator=)']).split('\n').map(s => s.trim()).filter(Boolean);
 }
 
+// 一個 sha 的內容永遠不變，server 每秒重組畫面時不必每個步驟都重跑 git；找不到的不記，之後出現還看得到
+const commitCache = new Map<string, Omit<CommitView, 'inferred'>>();
+
 export function commitOf(repo: string, step: StepRow): CommitView | null {
   if (!step.commit_sha) return null;
-  const inferred = step.binding === 'inferred';
+  const inferred = step.binding === 'inferred', key = `${repo}\0${step.commit_sha}`;
+  const cached = commitCache.get(key);
+  if (cached) return { ...cached, inferred };
   const output = git(repo, ['log', '-1', `--format=%h${FIELD}%s${FIELD}%(trailers:key=Green-By,valueonly,separator=)`, step.commit_sha]).trim();
   if (!output) return { sha: step.commit_sha.slice(0, 7), missing: true, inferred, files: [] };
   const [sha, subject, greenBy] = output.split(FIELD);
-  return { sha, subject, greenBy: normalizeGreenBy(greenBy), inferred, files: parseNumstat(git(repo, ['show', '--numstat', '--format=', step.commit_sha])) };
+  const commit = { sha, subject, greenBy: normalizeGreenBy(greenBy), files: parseNumstat(git(repo, ['show', '--numstat', '--format=', step.commit_sha])) };
+  commitCache.set(key, commit);
+  return { ...commit, inferred };
 }
