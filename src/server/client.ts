@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { maesterHome, port } from '../core/paths.ts';
-import { type Ping, PLUGIN_ROOT, PLUGIN_VERSION, PROTOCOL } from './protocol.ts';
+import { KEY_HEADER, type Ping, PLUGIN_ROOT, PLUGIN_VERSION, PROTOCOL } from './protocol.ts';
 
 const PING_TIMEOUT_MS = 500;
 const POLL_INTERVAL_MS = 100;
@@ -28,6 +28,17 @@ export function ping(): Promise<Ping | null> {
     });
     request.on('timeout', () => request.destroy());
     request.on('error', () => resolve(null));
+  });
+}
+
+// statusline 每次更新都會呼叫：server 沒開就丟掉，不啟動、不等。
+export function postAgent(repo: string, key: string, body: string): Promise<void> {
+  return new Promise(resolve => {
+    const request = http.request({ host: '127.0.0.1', port: port(), method: 'POST', path: `/api/agent?repo=${encodeURIComponent(repo)}`, agent: false, timeout: PING_TIMEOUT_MS,
+      headers: { 'content-type': 'application/json', [KEY_HEADER]: key } }, response => { response.resume(); response.on('end', resolve); });
+    request.on('timeout', () => request.destroy());
+    request.on('error', () => resolve());
+    request.end(body);
   });
 }
 

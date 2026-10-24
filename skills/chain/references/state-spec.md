@@ -22,6 +22,8 @@ Feature (one is current; others can be viewed on the page), Task, test (an immut
 |---|---|
 | `maester show` | **Read first when resuming**: current feature, council stage, decisions, latest council document of each kind, Tasks and test ids with completion, current step, open events |
 | `maester progress` | One-line progress for a statusline |
+| `maester agent` | Reads Claude Code's statusline JSON from stdin and forwards model, context, 5-hour/weekly usage and cost to the page; kept only in server memory, never in `maester.db`; prints nothing. `--hook` (PostToolUse/Stop, async) reads the context tokens from the transcript instead, and does nothing once the statusline is connected |
+| `maester statusline` | Claude Code's statusline, set automatically by the first SessionStart (or the page's 「顯示用量」 button): forwards the JSON like `agent`, then runs the user's original statusline (or prints `progress`). `--uninstall` restores the original and it is never set automatically again, nor after the user replaces it. SessionStart re-points it after a plugin update |
 | `maester wait` | Claim the next pending event of the current feature and print it (marked processing); waits when there is none. |
 
 ## Features

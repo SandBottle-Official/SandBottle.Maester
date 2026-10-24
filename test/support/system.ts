@@ -12,5 +12,5 @@ export const DATA_DIR = '.maester';
 export const DB_FILE = 'maester.db';
 export const COMMAND = 'maester';
 export const AI_GREEN_BY = 'ai';
-export const PROTOCOL = 3;
+export const PROTOCOL = 4;
 export const KEY_HEADER = 'x-maester-key';

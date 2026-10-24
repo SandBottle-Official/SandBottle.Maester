@@ -293,3 +293,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .chain-count{color:var(--faint);font-size:14px;white-space:nowrap}
 @media (prefers-reduced-motion:no-preference){.chain li.current{animation:link-glow 1.6s ease-in-out infinite}}
 @keyframes link-glow{50%{box-shadow:0 0 0 5px var(--phase-field)}}
+.agent-chip{display:inline-flex;align-items:center;gap:10px;height:28px;padding:0 12px;border-radius:14px;background:var(--surface);color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.agent-chip b{font-weight:500;color:var(--text)}
+@media (max-width:720px){.agent-chip b{display:none}}

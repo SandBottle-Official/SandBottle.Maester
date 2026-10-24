@@ -54,7 +54,7 @@ Report only: that business sentence, the test name, why it is red, and the examp
 
 ## Progress on the workbench
 
-Plans, progress and every step's content live only in the repo's `.maester/maester.db`, written through `maester`. No markdown plans, no json. A statusline can show `maester progress`.
+Plans, progress and every step's content live only in the repo's `.maester/maester.db`, written through `maester`. No markdown plans, no json. A statusline can show `maester progress`. The page shows the agent's context and 5-hour/weekly usage out of the box (Maester connects itself to the statusline on the first SessionStart and keeps the user's own statusline output).
 
 When the user says 「開始 Task N」「繼續」 or a new conversation resumes, run `maester open` and `maester show`, continue from the current step (→) and report where you are; when it stops at 🟢 the user is implementing, so do not rewrite the red test. When Tasks or tests change, write the whole plan with `maester plan` (existing tests keep the ids printed by `show`; nothing up to the current step may change).
 

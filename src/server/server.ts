@@ -7,8 +7,10 @@ import { maesterHome, port } from '../core/paths.ts';
 import { openStore, type Store } from '../core/store.ts';
 import type { EventInput } from '../core/types.ts';
 import { buildView } from '../view/build-view.ts';
+import { type AgentInfo, pickAgent } from './agent.ts';
 import { KEY_HEADER, type Ping, PLUGIN_ROOT, PLUGIN_VERSION, PROTOCOL } from './protocol.ts';
 import { readKey, readProjects } from './projects.ts';
+import { installStatusline, statuslineInstalled } from './statusline.ts';
 
 const WEB_ROOT = path.join(PLUGIN_ROOT, 'web');
 const KEY = readKey();
@@ -19,6 +21,8 @@ const MIME: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js
 const LOCAL_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
 const LOCAL_ORIGINS = new Set([...LOCAL_HOSTS].map(host => `http://${host}`));
 const streams = new Map<string, Set<http.ServerResponse>>();
+// shortcut: one agent per repo, last statusline wins; key by session_id if several sessions on one repo need their own row.
+const agents = new Map<string, AgentInfo>();
 
 const isKnownRepo = (repo: string | null): repo is string => !!repo && readProjects().includes(repo);
 const hasKey = (candidate: string | string[] | null | undefined) => {
@@ -47,7 +51,7 @@ function send(res: http.ServerResponse, status: number, body: unknown, type = 'a
 }
 
 function serializedView(repo: string, featureId: string | null) {
-  try { return JSON.stringify(buildView(repo, featureId)); }
+  try { return JSON.stringify({ ...buildView(repo, featureId), agent: agents.get(repo) ?? null, statusline: statuslineInstalled() }); }
   catch (error) { return JSON.stringify({ repo, error: messageOf(error) }); }
 }
 
@@ -94,6 +98,19 @@ function submitEvent(repo: string, body: string, res: http.ServerResponse) {
   } finally { store?.close(); }
 }
 
+function receiveAgent(req: http.IncomingMessage, res: http.ServerResponse, repo: string) {
+  let body = '';
+  req.on('data', chunk => {
+    body += chunk;
+    if (body.length > MAX_EVENT_BYTES) req.destroy();
+  });
+  req.on('end', () => {
+    try { agents.set(repo, pickAgent(JSON.parse(body))); }
+    catch { return send(res, 400, { error: 'bad json' }); }
+    send(res, 200, { ok: true });
+  });
+}
+
 function receiveEvent(req: http.IncomingMessage, res: http.ServerResponse, repo: string) {
   let body = '';
   req.on('data', chunk => {
@@ -125,6 +142,15 @@ const server = http.createServer((req, res) => {
       if (req.method !== 'POST') break;
       if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
       return isKnownRepo(repo) ? receiveEvent(req, res, repo) : send(res, 404, { error: 'unknown repo' });
+    case '/api/statusline':
+      if (req.method !== 'POST') break;
+      if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
+      try { installStatusline(); return send(res, 200, { ok: true }); }
+      catch (error) { return send(res, error instanceof Rejected ? 409 : 500, { error: messageOf(error) }); }
+    case '/api/agent':
+      if (req.method !== 'POST') break;
+      if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
+      return isKnownRepo(repo) ? receiveAgent(req, res, repo) : send(res, 404, { error: 'unknown repo' });
   }
   serveStatic(url.pathname, res);
 });

@@ -24,6 +24,6 @@ export const WRITE_COMMANDS: Record<string, WriteCommand> = {
   done: (store, [id]) => store.done(id),
 };
 
-export const READ_COMMANDS = ['ensure', 'open', 'url', 'progress', 'show', 'migrate', 'wait'] as const;
+export const READ_COMMANDS = ['ensure', 'open', 'url', 'progress', 'show', 'migrate', 'wait', 'agent', 'statusline'] as const;
 
 export const COMMAND_NAMES: readonly string[] = [...Object.keys(WRITE_COMMANDS), ...READ_COMMANDS];

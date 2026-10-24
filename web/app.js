@@ -1,5 +1,5 @@
 import { createComposer } from './composer.js';
-/** @typedef {import('../src/view/types.ts').View & { error?: string }} View */
+/** @typedef {import('../src/view/types.ts').View & { error?: string, agent?: import('../src/server/agent.ts').AgentInfo | null, statusline?: boolean }} View */
 const params = new URLSearchParams(location.search);
 const KEY = params.get('key') || '';
 const REPO = params.get('repo'), FEATURE = params.get('feature');
@@ -117,11 +117,30 @@ function topBar(v, phase, P) {
     ${v.features?.length > 1 ? `<select class="btn" data-feature aria-label="切換功能">${v.features.map(f => `<option value="${f.id}" ${f.id === v.featureId ? 'selected' : ''}>${esc(f.name)}${f.current ? '（目前）' : f.stage === 'done' ? '（已完成）' : ''}</option>`).join('')}</select>` : ''}
     ${task && phase ? `<span class="where-chip">Task ${esc(task.id)}<span class="meter" aria-label="${doneN}／${task.tests.length} 完成">${task.tests.map((_, j) => `<i class="${P.status(P.ti, j + 1) === 'done' ? 'd' : j + 1 === +P.cur.test ? 'c' : ''}"></i>`).join('')}</span>${doneN}／${task.tests.length}</span>` : ''}
     <div class="right">
+      ${agentChip(v.agent)}${usageButton(v)}
       <span class="sync ${connected ? '' : 'off'}" title="${connected ? '已同步' : 'server 斷線，重連中'}"><span class="dot"></span>${connected ? '已同步' : '重連中'}</span>
       <button class="icon" data-theme-to="${dark ? 'violet' : 'dark'}" aria-label="${dark ? '切換成白紫主題' : '切換成深色主題'}" title="${dark ? '白紫' : '深色'}">${dark
         ? '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>'
         : '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5Z"/></svg>'}</button>
     </div></header>`;
+}
+
+const pct = n => `${Math.round(n)}%`;
+const resetAt = w => w?.resetsAt ? `，${new Date(w.resetsAt * 1000).toLocaleString('zh-Hant', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 重置` : '';
+// agent 資訊來自 statusline（maester agent），只在 server 記憶體
+const kTokens = n => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
+// 用量要靠 statusline；沒接上時給一顆按鈕，按了才改 Claude Code 設定
+const usageButton = v => v.statusline || v.readonly ? '' : `<button class="link" data-statusline title="你還原或換掉了 statusline，所以沒有用量；按這裡重新接上，原本的 statusline 照常顯示">${esc(statuslineNote || '顯示用量')}</button>`;
+let statuslineNote = '';
+function agentChip(a) {
+  if (!a) return '';
+  const parts = [a.context != null ? ['context', pct(a.context), a.contextSize ? `context window ${a.contextSize.toLocaleString()} tokens` : '']
+      : a.contextTokens != null && ['context', kTokens(a.contextTokens), '這一輪送進模型的 token 數'],
+    a.fiveHour && ['5h', pct(a.fiveHour.used), `5 小時用量${resetAt(a.fiveHour)}`],
+    a.sevenDay && ['週', pct(a.sevenDay.used), `週用量${resetAt(a.sevenDay)}`],
+    a.cost != null && ['$', a.cost.toFixed(2), '這個 session 的花費（USD）']].filter(Boolean);
+  const ago = Math.round((Date.now() - a.at) / 60000);
+  return `<span class="agent-chip" title="${esc(`${a.model || 'agent'} · ${ago ? `${ago} 分鐘前更新` : '剛更新'}`)}">${a.model ? `<b>${esc(a.model)}</b>` : ''}${parts.map(([k, n, t]) => `<span title="${esc(t)}">${k} ${n}</span>`).join('')}</span>`;
 }
 
 function road(v, P) {
@@ -360,6 +379,12 @@ app.addEventListener('click', e => {
   if (t.dataset.tab) { ui.tab = t.dataset.tab; return render(); }
   if ('back' in t.dataset) { Object.assign(ui, { mode: null, task: null, step: null }); return render(); }
   if (t.dataset.ev) return send(t.dataset.ev);
+  if ('statusline' in t.dataset) {
+    statuslineNote = '設定中…'; render();
+    fetch('/api/statusline', { method: 'POST', headers: { 'x-maester-key': KEY } })
+      .then(async r => { statuslineNote = r.ok ? '' : (await r.json().catch(() => ({}))).error || `設定失敗（${r.status}）`; render(); });
+    return;
+  }
   if (t.dataset.answer) { ui.draft[t.dataset.answer] = { value: t.dataset.value }; return render(); }
   if ('sendAll' in t.dataset) {
     const answers = Object.entries(ui.draft).map(([decision, a]) => ({ decision, value: a.value, ...(a.free ? { free: true } : {}) }));

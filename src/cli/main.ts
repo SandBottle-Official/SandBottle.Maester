@@ -1,12 +1,14 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { messageOf, reject } from '../core/errors.ts';
 import { dataDir, dbPath, port } from '../core/paths.ts';
 import { openStore, type Store } from '../core/store.ts';
 import { migrateLegacyJson } from '../migrate/legacy-json.ts';
 import { adoptLegacyData, adoptLegacyHome } from '../migrate/legacy-workbench.ts';
-import { ensureServer, openerFor, ping } from '../server/client.ts';
+import { ensureServer, openerFor, ping, postAgent } from '../server/client.ts';
+import { statuslineFromTranscript } from '../server/agent.ts';
 import { addProject, readKey } from '../server/projects.ts';
+import { autoInstallStatusline, originalCommand, repointStatusline, statuslineInstalled, uninstallStatusline } from '../server/statusline.ts';
 import { repoRoot } from '../view/git.ts';
 import { progressLine } from '../view/progress.ts';
 import { openEventsReminder, showText } from '../view/show.ts';
@@ -28,6 +30,11 @@ function withStore<T>(repo: string | null, work: (store: Store) => T, { write = 
 }
 
 async function ensure(repo: string | null, isHook: boolean) {
+  // 只在 Claude Code 的 plugin hook 裡自動接 statusline：Codex 與測試不帶這兩個變數
+  try {
+    if (isHook && process.env.CLAUDECODE && process.env.CLAUDE_PLUGIN_ROOT) autoInstallStatusline();
+    repointStatusline();
+  } catch {}
   await ensureServer();
   if (repo && (!isHook || fs.existsSync(dataDir(repo)))) addProject(repo);
   if (!isHook || !repo || !fs.existsSync(dbPath(repo))) return;
@@ -65,6 +72,53 @@ async function waitForEvent(repo: string | null) {
   }
 }
 
+const TRANSCRIPT_TAIL_BYTES = 1_000_000;
+const readStdin = () => process.stdin.isTTY ? '' : fs.readFileSync(0, 'utf8');
+
+function tailOf(file: string) {
+  const fd = fs.openSync(file, 'r');
+  try {
+    const size = fs.fstatSync(fd).size, start = Math.max(0, size - TRANSCRIPT_TAIL_BYTES), buffer = Buffer.alloc(size - start);
+    fs.readSync(fd, buffer, 0, buffer.length, start);
+    return buffer.toString('utf8');
+  } finally { fs.closeSync(fd); }
+}
+
+// agent 資訊只轉給 server 放在記憶體，不寫 DB
+async function forwardStatusline(text: string) {
+  let workspace: { project_dir?: string; current_dir?: string } = {};
+  try { workspace = JSON.parse(text).workspace ?? {}; } catch { return; }
+  const repo = repoRoot(workspace.project_dir || workspace.current_dir || process.cwd());
+  if (repo) await postAgent(repo, readKey(), text);
+}
+
+// 沒裝 statusline 時靠 hook：從 transcript 估 context；裝了就交給 statusline，資料比較完整
+async function forwardHook() {
+  if (statuslineInstalled()) return;
+  const input = JSON.parse(readStdin() || '{}');
+  const repo = repoRoot(input.cwd || process.cwd());
+  if (!repo || !fs.existsSync(dataDir(repo)) || !input.transcript_path) return;
+  const info = statuslineFromTranscript(tailOf(input.transcript_path));
+  if (info) await postAgent(repo, readKey(), JSON.stringify(info));
+}
+
+// 頁面按「顯示用量」後的 statusline：先轉給 server，再照跑使用者原本的指令；沒有就印進度
+async function statusline(repo: string | null, args: string[]) {
+  if (args.includes('--uninstall')) {
+    uninstallStatusline();
+    return console.log('已還原原本的 statusline');
+  }
+  const text = readStdin();
+  await forwardStatusline(text);
+  const command = originalCommand();
+  if (command) {
+    spawnSync(command, { shell: true, input: text, stdio: ['pipe', 'inherit', 'inherit'] });
+    return;
+  }
+  const line = repo ? progressLine(repo) : '';
+  if (line) console.log(line);
+}
+
 function locateRepo() {
   adoptLegacyHome();
   const repo = repoRoot(process.cwd());
@@ -88,6 +142,8 @@ async function run([command, ...args]: string[]) {
     case 'show': return console.log(repo ? showText(repo) : '不在 git repo 裡');
     case 'migrate': return console.log(JSON.stringify(migrateLegacyJson(requireRepo(repo))));
     case 'wait': return waitForEvent(repo);
+    case 'agent': return args.includes('--hook') ? forwardHook() : forwardStatusline(readStdin());
+    case 'statusline': return statusline(repo, args);
     default:
       console.log('用法見 skills/chain/references/state-spec.md');
       process.exitCode = USAGE_EXIT_CODE;
