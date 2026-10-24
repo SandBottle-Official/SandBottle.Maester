@@ -7,7 +7,7 @@ import { maesterHome, port } from '../core/paths.ts';
 import { openStore, type Store } from '../core/store.ts';
 import type { EventInput } from '../core/types.ts';
 import { buildView } from '../view/build-view.ts';
-import { type AgentInfo, nextAgent, pickAgent } from './agent.ts';
+import { type AccountLimits, type AgentInfo, nextAgent, nextLimits, pickAgent, withLimits } from './agent.ts';
 import { KEY_HEADER, type Ping, PLUGIN_ROOT, PLUGIN_VERSION, PROTOCOL } from './protocol.ts';
 import { readKey, readProjects } from './projects.ts';
 import { installStatusline, statuslineInstalled } from './statusline.ts';
@@ -23,6 +23,7 @@ const LOCAL_ORIGINS = new Set([...LOCAL_HOSTS].map(host => `http://${host}`));
 const streams = new Map<string, Set<http.ServerResponse>>();
 // shortcut: one agent per repo, last statusline wins; key by session_id if several sessions on one repo need their own row.
 const agents = new Map<string, AgentInfo>();
+let limits: AccountLimits | undefined;
 
 const isKnownRepo = (repo: string | null): repo is string => !!repo && readProjects().includes(repo);
 const hasKey = (candidate: string | string[] | null | undefined) => {
@@ -51,7 +52,7 @@ function send(res: http.ServerResponse, status: number, body: unknown, type = 'a
 }
 
 function serializedView(repo: string, featureId: string | null) {
-  try { return JSON.stringify({ ...buildView(repo, featureId), agent: agents.get(repo) ?? null, statusline: statuslineInstalled() }); }
+  try { return JSON.stringify({ ...buildView(repo, featureId), agent: withLimits(agents.get(repo), limits), statusline: statuslineInstalled() }); }
   catch (error) { return JSON.stringify({ repo, error: messageOf(error) }); }
 }
 
@@ -98,14 +99,19 @@ function submitEvent(repo: string, body: string, res: http.ServerResponse) {
   } finally { store?.close(); }
 }
 
-function receiveAgent(req: http.IncomingMessage, res: http.ServerResponse, repo: string) {
+// 不是 Maester 的 repo 也收：只拿帳號用量，不記 agent
+function receiveAgent(req: http.IncomingMessage, res: http.ServerResponse, repo: string | null) {
   let body = '';
   req.on('data', chunk => {
     body += chunk;
     if (body.length > MAX_EVENT_BYTES) req.destroy();
   });
   req.on('end', () => {
-    try { agents.set(repo, nextAgent(agents.get(repo), pickAgent(JSON.parse(body)))); }
+    try {
+      const info = pickAgent(JSON.parse(body));
+      limits = nextLimits(limits, info);
+      if (repo) agents.set(repo, nextAgent(agents.get(repo), info));
+    }
     catch { return send(res, 400, { error: 'bad json' }); }
     send(res, 200, { ok: true });
   });
@@ -150,7 +156,7 @@ const server = http.createServer((req, res) => {
     case '/api/agent':
       if (req.method !== 'POST') break;
       if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
-      return isKnownRepo(repo) ? receiveAgent(req, res, repo) : send(res, 404, { error: 'unknown repo' });
+      return receiveAgent(req, res, isKnownRepo(repo) ? repo : null);
   }
   serveStatic(url.pathname, res);
 });

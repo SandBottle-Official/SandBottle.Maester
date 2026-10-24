@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { nextAgent, pickAgent, statuslineFromTranscript } from '../src/server/agent.ts';
+import { nextAgent, nextLimits, pickAgent, statuslineFromTranscript, withLimits } from '../src/server/agent.ts';
 
 describe('agent 資訊', () => {
   test('statusline JSON_只留頁面要的欄位', () => {
@@ -46,4 +46,36 @@ describe('statusline 與 hook 都在回報時', () => {
   });
 
   test('statusline 一律採用', () => assert.equal(nextAgent(hook(0), statusline), statusline));
+});
+
+describe('沒有 statusline 的 session 借用帳號的 5h／週用量', () => {
+  const HOUR = 3600;
+  const fromStatusline = (at: number, fiveHourResetsAt = 10 * HOUR) =>
+    pickAgent({ rate_limits: { five_hour: { used_percentage: 29, resets_at: fiveHourResetsAt }, seven_day: { used_percentage: 11, resets_at: 100 * HOUR } } }, at);
+  const sdk = pickAgent({ source: 'hook', model: { display_name: 'opus' } }, 1000);
+
+  test('任何 session 的 statusline 都更新帳號用量_hook 或沒有用量的不更新', () => {
+    const limits = nextLimits(undefined, fromStatusline(5));
+    assert.deepEqual(limits, { fiveHour: { used: 29, resetsAt: 10 * HOUR }, sevenDay: { used: 11, resetsAt: 100 * HOUR }, at: 5 });
+    assert.equal(nextLimits(limits, sdk), limits);
+    assert.equal(nextLimits(limits, pickAgent({}, 9)), limits);
+  });
+
+  test('沒有用量的 agent_補上帳號用量並標出取得時間', () => {
+    const a = withLimits(sdk, nextLimits(undefined, fromStatusline(5)), 0)!;
+    assert.deepEqual([a.model, a.fiveHour?.used, a.sevenDay?.used, a.limitsAt], ['opus', 29, 11, 5]);
+  });
+
+  test('已經重置的視窗不借_自己有用量的不動', () => {
+    const limits = nextLimits(undefined, fromStatusline(5, 1));
+    const a = withLimits(sdk, limits, 2 * HOUR * 1000)!;
+    assert.deepEqual([a.fiveHour, a.sevenDay?.used], [null, 11]);
+    const own = fromStatusline(7);
+    assert.equal(withLimits(own, limits, 0), own);
+  });
+
+  test('沒有 agent 或沒有帳號用量_原樣', () => {
+    assert.equal(withLimits(undefined, nextLimits(undefined, fromStatusline(5)), 0), null);
+    assert.equal(withLimits(sdk, undefined, 0), sdk);
+  });
 });

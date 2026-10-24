@@ -88,8 +88,9 @@ function tailOf(file: string) {
 async function forwardStatusline(text: string) {
   let workspace: { project_dir?: string; current_dir?: string } = {};
   try { workspace = JSON.parse(text).workspace ?? {}; } catch { return; }
+  // 不在 repo 裡也送：server 要從任何 session 拿帳號的 5h／週用量
   const repo = repoRoot(workspace.project_dir || workspace.current_dir || process.cwd());
-  if (repo) await postAgent(repo, readKey(), text);
+  await postAgent(repo ?? '', readKey(), text);
 }
 
 // SDK／stream-json 模式不跑 statusline，所以 hook 一律從 transcript 估 context；statusline 剛回報過時 server 會忽略這份
