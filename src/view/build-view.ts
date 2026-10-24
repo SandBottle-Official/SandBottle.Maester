@@ -30,7 +30,7 @@ function stepContent(step: StepRow): StepContent {
     testCode, failure: step.failure, greenExample,
     testFiles: listedFiles(step.test_files, testCode),
     greenFiles: listedFiles(step.green_files, greenExample),
-    refactor: step.refactor, hint: step.hint,
+    refactor: step.refactor, refactorFiles: step.refactor_files ? JSON.parse(step.refactor_files) : [], hint: step.hint,
     lesson: step.lesson ? JSON.parse(step.lesson) : undefined,
     empty: step.test_code == null && step.test_files == null && step.story == null,
   };

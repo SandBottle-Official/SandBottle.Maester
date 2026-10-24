@@ -61,10 +61,10 @@ Document kinds for `doc`:
 |---|---|---|
 | `maester plan` | `{ "feature": 1, "tasks": [{ "code": "02", "title": "…", "layer": "use case", "tests": [{ "id": 17, "name": "R10_…", "rule": "R10" }, { "name": "新的測試" }] }] }` | Replaces the whole plan; existing tests carry their `id` (see `show`), new ones do not. Tests up to and including the current step keep their id, name and order |
 | `maester tdd` | — | Only once, from the council stage; the current step becomes the first test 🔴 |
-| `maester phase` | `{ "test": 17, "phase": "green", "title", "story", "layer", "ruleRef", "testCode": { "file", "lang", "code" }, "failure", "greenExample": { "file", "lang", "code", "added": [3, 4] }, "refactor", "hint" }` | Only red→green→refactor, or the same phase to update content; omitted fields keep their value |
+| `maester phase` | `{ "test": 17, "phase": "green", "title", "story", "layer", "ruleRef", "testCode": { "file", "lang", "code" }, "failure", "greenExample": { "file", "lang", "code", "added": [3, 4] }, "refactor", "refactorExample": [{ "file", "lang", "code", "added" }], "hint" }` | Only red→green→refactor, or the same phase to update content; omitted fields keep their value |
 | `maester complete <test id> <sha>` | — | After the refactor commit (or a skipped refactor): binds explicitly, archives the step, moves to the next test 🔴 (after the last one the feature is done). The sha must be HEAD or an ancestor; red cannot complete; repeating the same sha does nothing |
 
-`testCode` and `greenExample` may be a single file `{ file, lang, code }` or an array (one block per file on the page).
+`testCode`, `greenExample` and `refactorExample` may be a single file `{ file, lang, code }` or an array (one block per file on the page).
 
 `lesson` (optional) teaches the framework syntax and concepts of the step, shown under the selected test:
 `{ "intro": "一句話", "topics": [{ "name": "Hono", "points": [{ "term": "app.post(path, handler)", "analog": "C#：[HttpPost]", "text": "說明，可用 `行內程式碼`", "code": { "lang": "ts", "code": "…" } }] }] }`. `analog` compares with a language the user already knows and names that language; `code` is optional.

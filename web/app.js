@@ -200,12 +200,15 @@ function gwt(v, ruleId) {
 // 一個檔案一個區塊，檔名放在區塊標題列
 const fileBlocks = (list = [], fallback) => (list.length > 1 ? `<p class="files-count">${list.length} 個檔案</p>` : '')
   + list.map(f => codeBlock(f.file || fallback, f)).join('');
+// 重構方向依空行分段，每段一個區塊（「產品碼」「測試碼」各自一塊）
+const refactorBlocks = text => (text || '').split(/\n\s*\n/).map(t => t.trim()).filter(Boolean)
+  .map(t => `<div class="decision"><p style="white-space:pre-wrap">${inline(t)}</p></div>`).join('');
 function codeTabs(s) {
   return `<section>
     <div class="tabs" role="tablist">${[['test', '紅燈測試'], ['impl', '綠燈範例'], ['refactor', '重構方向']].map(([k, n]) => `<button role="tab" data-tab="${k}" aria-selected="${ui.tab === k}">${n}</button>`).join('')}</div>
     ${ui.tab === 'test' ? (fileBlocks(s.testFiles, '測試') + (s.failure ? codeBlock('執行結果', { code: s.failure, lang: 'text' }) : '')) || '<p class="note">沒有測試碼。</p>' : ''}
     ${ui.tab === 'impl' ? fileBlocks(s.greenFiles, '綠燈範例') || '<p class="note">沒有綠燈範例。</p>' : ''}
-    ${ui.tab === 'refactor' ? (s.refactor ? `<p style="margin-top:12px;white-space:pre-wrap">${esc(s.refactor)}</p>` : '<p class="note">沒有重構方向。</p>') : ''}
+    ${ui.tab === 'refactor' ? (refactorBlocks(s.refactor) + fileBlocks(s.refactorFiles, '重構範例')) || '<p class="note">沒有重構方向。</p>' : ''}
     ${s.hint ? `<div class="decision"><p class="q">提示</p><p style="white-space:pre-wrap">${esc(s.hint)}</p></div>` : ''}
   </section>${lessonBlock(s.lesson, 'narrow-only')}`;
 }

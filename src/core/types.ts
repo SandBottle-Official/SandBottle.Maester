@@ -39,6 +39,7 @@ export type StepRow = {
   test_files: string | null;
   green_files: string | null;
   refactor: string | null;
+  refactor_files: string | null;
   hint: string | null;
   lesson: string | null;
   completed_at: string | null;
@@ -116,6 +117,7 @@ export type PhaseInput = {
   failure?: string;
   greenExample?: CodeFile | CodeFile[];
   refactor?: string;
+  refactorExample?: CodeFile | CodeFile[];
   hint?: string;
   lesson?: unknown;
 };

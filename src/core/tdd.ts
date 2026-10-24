@@ -98,7 +98,7 @@ export const COMMIT_SHA = /^[0-9a-f]{4,40}$/i;
 function rejectInvalidAddedLines(content: CodeFile | CodeFile[] | undefined) {
   const files = content === undefined ? [] : Array.isArray(content) ? content : [content];
   const valid = files.every(f => f.added === undefined || (Array.isArray(f.added) && f.added.every(n => Number.isInteger(n) && n > 0)));
-  if (!valid) reject('greenExample 的 added 只能是正整數行號');
+  if (!valid) reject('greenExample／refactorExample 的 added 只能是正整數行號');
 }
 
 function codeColumns(prefix: 'test' | 'green', content: CodeFile | CodeFile[] | undefined): CodeColumns {
@@ -115,15 +115,18 @@ function codeColumns(prefix: 'test' | 'green', content: CodeFile | CodeFile[] | 
 }
 
 export function recordPhase(db: Db, input: PhaseInput = {}) {
-  const { test, phase, title, story, layer, ruleRef, testCode, failure, greenExample, refactor, hint, lesson } = input;
+  const { test, phase, title, story, layer, ruleRef, testCode, failure, greenExample, refactor, refactorExample, hint, lesson } = input;
   return db.transaction(() => {
     const feature = writableFeature(db);
     const step = stepAt(db, feature, test);
     if (phase !== step.phase && (!step.phase || NEXT_PHASE[step.phase] !== phase)) reject(`不能從 ${step.phase} 換到 ${phase}`);
     rejectInvalidAddedLines(greenExample);
+    rejectInvalidAddedLines(refactorExample);
     const changes: Record<string, SQLInputValue | undefined> = {
       phase, title, story, layer, rule_ref: ruleRef, failure, refactor, hint,
       lesson: lesson === undefined ? undefined : JSON.stringify(lesson),
+      // 重構範例只有新格式，單一檔案也存成陣列
+      refactor_files: refactorExample === undefined ? undefined : JSON.stringify([refactorExample].flat()),
       ...codeColumns('test', testCode),
       ...codeColumns('green', greenExample),
     };

@@ -46,17 +46,29 @@ describe('換階段', () => {
     assert.deepEqual(S.view().state.tdd.greenFiles, [{ file: 'c.ts', lang: 'ts', code: 'c', added: [] }]);
   });
 
+  test('重構範例_單一或多個檔案都讀回成陣列', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.toPhase(tests[0].id, 'green', 'refactor');
+    assert.deepEqual(S.view().state.tdd.refactorFiles, []);
+    const files = [{ file: 'a.ts', lang: 'ts', code: 'a' }, { file: 'a.test.ts', lang: 'ts', code: 'b', added: [1] }];
+    S.ok(['phase'], { test: tests[0].id, phase: 'refactor', refactor: '產品碼：抽常數', refactorExample: files });
+    assert.deepEqual(S.view().state.tdd.refactorFiles, files);
+    S.ok(['phase'], { test: tests[0].id, phase: 'refactor', refactorExample: { file: 'c.ts', code: 'c' } });
+    assert.deepEqual(S.view().state.tdd.refactorFiles, [{ file: 'c.ts', code: 'c' }]);
+  });
+
   test('版本 1 的 DB_開啟時補上新欄位', () => {
     const S = scenario();
     S.inTdd();
     const db = S.db();
-    db.connection.exec('ALTER TABLE steps DROP COLUMN lesson; ALTER TABLE steps DROP COLUMN test_files; ALTER TABLE steps DROP COLUMN green_files; ALTER TABLE events DROP COLUMN text; PRAGMA user_version = 1;');
+    db.connection.exec('ALTER TABLE steps DROP COLUMN lesson; ALTER TABLE steps DROP COLUMN test_files; ALTER TABLE steps DROP COLUMN green_files; ALTER TABLE events DROP COLUMN text; ALTER TABLE steps DROP COLUMN refactor_files; PRAGMA user_version = 1;');
     db.close();
     const again = S.db();
     try {
       assert.equal(again.get('PRAGMA user_version').user_version, SCHEMA);
       const columns = again.all('PRAGMA table_info(steps)').map((c: any) => c.name);
-      assert.deepEqual(['lesson', 'test_files', 'green_files'].filter(n => columns.includes(n)).length, 3);
+      assert.deepEqual(['lesson', 'test_files', 'green_files', 'refactor_files'].filter(n => columns.includes(n)).length, 4);
     } finally { again.close(); }
   });
 

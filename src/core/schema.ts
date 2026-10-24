@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-export const SCHEMA = 4;
+export const SCHEMA = 5;
 
 const DDL = `
 CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);
@@ -13,7 +13,7 @@ CREATE TABLE tests(id INTEGER PRIMARY KEY, feature_id INTEGER NOT NULL REFERENCE
 CREATE TABLE steps(id INTEGER PRIMARY KEY, feature_id INTEGER NOT NULL REFERENCES features(id), test_id INTEGER NOT NULL UNIQUE REFERENCES tests(id),
   phase TEXT CHECK(phase IN ('red','green','refactor')), title TEXT, story TEXT, layer TEXT, rule_ref TEXT,
   test_file TEXT, test_lang TEXT, test_code TEXT, failure TEXT, green_file TEXT, green_lang TEXT, green_code TEXT, green_added TEXT, test_files TEXT, green_files TEXT,
-  refactor TEXT, hint TEXT, lesson TEXT, completed_at TEXT, commit_sha TEXT, binding TEXT CHECK(binding IN ('explicit','inferred')), updated_at TEXT NOT NULL);
+  refactor TEXT, refactor_files TEXT, hint TEXT, lesson TEXT, completed_at TEXT, commit_sha TEXT, binding TEXT CHECK(binding IN ('explicit','inferred')), updated_at TEXT NOT NULL);
 CREATE UNIQUE INDEX one_current_step ON steps(feature_id) WHERE completed_at IS NULL;
 CREATE UNIQUE INDEX one_explicit_binding ON steps(commit_sha) WHERE binding = 'explicit';
 CREATE TABLE rt_docs(id INTEGER PRIMARY KEY, feature_id INTEGER NOT NULL REFERENCES features(id), seq INTEGER NOT NULL,
@@ -40,6 +40,7 @@ const UPGRADES: Record<number, string> = {
   1: 'ALTER TABLE steps ADD COLUMN lesson TEXT;',
   2: 'ALTER TABLE steps ADD COLUMN test_files TEXT; ALTER TABLE steps ADD COLUMN green_files TEXT;',
   3: 'ALTER TABLE events ADD COLUMN text TEXT;',
+  4: 'ALTER TABLE steps ADD COLUMN refactor_files TEXT;',
 };
 
 export function migrateSchema(connection: DatabaseSync, version: number) {

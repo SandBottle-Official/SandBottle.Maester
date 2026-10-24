@@ -14,6 +14,7 @@ export type StepContent = {
   testFiles: CodeFile[];
   greenFiles: CodeFile[];
   refactor: string | null;
+  refactorFiles: CodeFile[];
   hint: string | null;
   lesson?: unknown;
   empty: boolean;
