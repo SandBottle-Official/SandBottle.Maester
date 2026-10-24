@@ -265,8 +265,12 @@ function stepper(ph, redBy) {
 }
 // 跟著 repo；按了直接寫進 maester.db，不經過 AI，下一個紅燈才生效
 let redByNote = '';
-const redByToggle = v => v.readonly ? '' : `<button class="link" data-red-by="${v.redBy === 'user' ? 'ai' : 'user'}" aria-pressed="${v.redBy !== 'user'}"
-  title="開著：AI 每一輪直接寫紅燈測試。關著：AI 只給測試名稱、要驗的行為和片段，你自己寫。從下一個紅燈開始生效">AI 自動寫紅燈：${v.redBy === 'user' ? '關' : '開'}${redByNote ? `（${esc(redByNote)}）` : ''}</button>`;
+const redByToggle = v => {
+  if (v.readonly) return '';
+  const on = v.redBy !== 'user';
+  return `<button class="switch" role="switch" aria-checked="${on}" data-red-by="${on ? 'user' : 'ai'}"
+  title="開著：AI 每一輪直接寫紅燈測試。關著：AI 只給測試名稱、要驗的行為和片段，你自己寫。從下一個紅燈開始生效"><span class="knob" aria-hidden="true"></span>AI 自動寫紅燈${redByNote ? `<span class="why">${esc(redByNote)}</span>` : ''}</button>`;
+};
 function tddStep(v, P) {
   const s = P.cur, ph = s?.phase, lock = busy(v);
   if (!s) return `<aside class="panel step"><p class="empty">${v.state?.done ? '這個功能已完成。打開左上角清單看過往紀錄。' : 'AI 還沒寫入目前這一步。'}</p></aside>`;
@@ -396,6 +400,7 @@ app.addEventListener('click', e => {
   if ('back' in t.dataset) { Object.assign(ui, { mode: null, task: null, step: null }); return render(); }
   if (t.dataset.ev) return send(t.dataset.ev);
   if (t.dataset.redBy) {
+    view.redBy = t.dataset.redBy === 'user' ? 'user' : 'ai'; redByNote = ''; render();
     fetch(`/api/red-by?repo=${encodeURIComponent(REPO)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-maester-key': KEY }, body: JSON.stringify({ value: t.dataset.redBy }) })
       .then(async r => { redByNote = r.ok ? '' : (await r.json().catch(() => ({}))).error || `切換失敗（${r.status}）`; render(); });
     return;

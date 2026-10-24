@@ -114,6 +114,14 @@ h1{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;min-wid
 .where{color:var(--faint);font-size:14px}
 .step h2{font-size:23px;font-weight:600;line-height:1.35;margin:14px 0 8px}
 .lede{font-size:16px;line-height:1.75;color:var(--read)}
+.switch{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:0;border:0;background:none;cursor:pointer;font-size:14px;color:var(--muted)}
+.switch .knob{position:relative;width:34px;height:20px;border-radius:10px;background:var(--control);transition:background .15s}
+.switch .knob::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px #0005;transition:transform .15s}
+.switch[aria-checked="true"]{color:var(--text)}
+.switch[aria-checked="true"] .knob{background:var(--phase)}
+.switch[aria-checked="true"] .knob::after{transform:translateX(14px)}
+.switch .why{color:var(--red);font-size:13px}
+@media (prefers-reduced-motion:reduce){.switch .knob,.switch .knob::after{transition:none}}
 .stepper{list-style:none;display:flex;gap:0;font-size:14px}
 .stepper li{display:flex;align-items:center;gap:7px;color:var(--faint);flex:none}
 .stepper li + li::before{content:"";width:28px;height:1px;background:var(--control);margin:0 10px}
