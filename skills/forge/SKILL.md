@@ -67,7 +67,7 @@ Record every phase change immediately with `maester phase` (with the current tes
 - Giving a hint: same phase, write `hint`.
 - Optionally a `lesson` for the framework syntax this step introduces; its `analog` is a comparison in a language the user already knows, naming that language inside the text (for example `C#：[HttpPost]`).
 
-While waiting at 🟢 or 🔵, run `maester wait` with `run_in_background`, continue according to the event received (the table is in the state spec), then `maester done <event id>`.
+Keep one `maester wait` running with `run_in_background` for as long as the feature is not done, in every phase (the page can send a `prompt` at any time, and 🔴 waits on the user when the red-test setting is `user`); continue according to the event received (the table is in the state spec), then `maester done <event id>`.
 
 ## Commits: one at green, one at refactor
 
