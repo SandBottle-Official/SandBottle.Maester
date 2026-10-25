@@ -257,6 +257,17 @@ function historyStep(v, P, task, test) {
   </aside>${dock(v, '<button class="second" data-back>回到目前這一步</button>')}`;
 }
 
+// 卡住這一步的事：放在右欄最上面，寫清楚原因、怎麼調整，原始輸出折起來
+function problemCard(p) {
+  if (!p) return '';
+  return `<section class="problem" role="alert"><p class="problem-tag"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 1.8 15 14H1z" stroke-linejoin="round"/><path d="M8 6.2v3.6M8 11.9v.1"/></svg>需要你調整</p>
+    <h3>${esc(p.title)}</h3>
+    ${p.why ? `<p class="problem-why">${inline(p.why)}</p>` : ''}
+    ${p.fix ? `<div class="problem-fix"><p class="q">怎麼調整</p><p>${inline(p.fix)}</p></div>` : ''}
+    ${p.output ? `<details class="fold" data-fold="problem" ${ui.folds.problem ?? true ? 'open' : ''}><summary>測試輸出</summary>${codeBlock('測試輸出', { code: p.output, lang: 'text' })}</details>` : ''}
+  </section>`;
+}
+
 const STEPS = [['red', '紅', 'AI 寫測試'], ['green', '綠', '你實作'], ['refactor', '重構', '整理程式']];
 function stepper(ph, redBy) {
   const at = STEPS.findIndex(([k]) => k === ph);
@@ -274,12 +285,13 @@ const redByToggle = v => {
 function tddStep(v, P) {
   const s = P.cur, ph = s?.phase, lock = busy(v);
   if (!s) return `<aside class="panel step"><p class="empty">${v.state?.done ? '這個功能已完成。打開左上角清單看過往紀錄。' : 'AI 還沒寫入目前這一步。'}</p></aside>`;
-  const acts = ph === 'green' ? `<button class="primary" data-ev="tests_ran" ${lock ? 'disabled' : ''} title="測試全綠後 AI 先 commit 綠燈，再進重構">我寫好了，跑測試</button>
+  const retry = s.problem ? '我改好了，再跑一次測試' : '';
+  const acts = ph === 'green' ? `<button class="primary" data-ev="tests_ran" ${lock ? 'disabled' : ''} title="測試全綠後 AI 先 commit 綠燈，再進重構">${retry || '我寫好了，跑測試'}</button>
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button><button class="link" data-ev="help_green" ${lock ? 'disabled' : ''}>直接幫我寫綠燈</button></div>`
-    : ph === 'refactor' ? `<button class="primary" data-ev="refactor_done" ${lock ? 'disabled' : ''} title="AI 跑測試、commit 重構，再寫下一個紅燈">重構好了，跑測試並 commit</button>
+    : ph === 'refactor' ? `<button class="primary" data-ev="refactor_done" ${lock ? 'disabled' : ''} title="AI 跑測試、commit 重構，再寫下一個紅燈">${retry || '重構好了，跑測試並 commit'}</button>
       <div class="minor"><button class="link" data-ev="refactor_skip" ${lock ? 'disabled' : ''} title="不 commit，直接進下一個測試">這輪不重構</button></div>`
     : v.redBy !== 'user' && !s.testCode ? `<p class="note">AI 正在寫這一輪的紅燈測試。</p>`
-    : s.testCode ? `<button class="primary" data-ev="red_written" ${lock ? 'disabled' : ''} title="AI 跑測試，確認因為行為還沒實作而紅，再進綠燈">測試寫好了，跑測試</button>
+    : s.testCode ? `<button class="primary" data-ev="red_written" ${lock ? 'disabled' : ''} title="AI 跑測試，確認因為行為還沒實作而紅，再進綠燈">${retry || '測試寫好了，跑測試'}</button>
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button></div>`
     : `<p class="note">AI 正在準備這一輪要你寫的測試。</p>`;
   const note = lock;
@@ -290,6 +302,7 @@ function tddStep(v, P) {
       <h2>${esc(s.title || P.tasks[P.ti]?.tests[s.test - 1]?.name || '')}</h2>
       ${s.story ? `<p class="lede">${esc(s.story)}</p>` : ''}
     </section>
+    ${problemCard(s.problem)}
     ${codeTabs(s)}
     ${s.ruleRef ? gwt(v, s.ruleRef) : ''}
     <details class="fold" data-fold="changes" ${ui.folds.changes ? 'open' : ''}><summary>這一輪你改了<span class="sum">${changed.length ? `${changed.length} 個檔案` : '還沒有'}</span></summary>${files(changed)}<p class="note">只算產品碼；測試碼不算在內。</p></details>
@@ -332,15 +345,16 @@ function render() {
   if (!v) return;
   if (v.error) { app.innerHTML = `<p class="empty">讀取失敗：${esc(v.error)}</p>`; return; }
   const P = position(v);
+  // 進到新的一步、新的階段或出了要調整的事時，畫面跳回目前這一步；分頁跟著切：紅、綠看測試，重構看重構方向
+  const stepKey = `${v.featureId}|${v.state?.stage}|${v.state?.roundtable?.state}|${P.cur ? `${P.cur.testId}:${P.cur.phase}:${P.cur.problem?.title ?? ''}` : ''}`;
+  if (stepKey !== lastStep) {
+    if (lastStep !== undefined) Object.assign(ui, { mode: null, task: null, step: null });
+    ui.tab = PHASE_TAB[P.cur?.phase] || 'test';
+    lastStep = stepKey;
+  }
   ui.mode ??= v.state?.stage === 'roundtable' ? 'rt' : v.state?.stage === 'tdd' || P.tasks.length ? 'tdd' : v.roundtable.length ? 'rt' : null;
   ui.task ??= P.cur?.task ?? P.tasks[0]?.id;
   const phase = v.state?.stage === 'tdd' ? P.cur?.phase : null;
-  // 進到新的一步或新的階段時，右側分頁跟著切：紅、綠看測試，重構看重構方向
-  const stepKey = P.cur ? `${P.cur.testId}:${P.cur.phase}` : null;
-  if (stepKey !== lastStep) {
-    if (!ui.step) ui.tab = PHASE_TAB[P.cur?.phase] || 'test';
-    lastStep = stepKey;
-  }
   document.title = `Maester · ${v.state?.feature || v.plan?.feature || v.name}`;
   document.body.className = phase && phase !== 'green' ? `phase-${phase}` : '';
   const err = v.errors.map(e => `<p class="banner" style="margin:0 8px 8px">${esc(e)}</p>`).join('') ;

@@ -27,6 +27,26 @@ describe('換階段', () => {
     assert.deepEqual([t.phase, t.hint], ['green', '先看 Fixtures']);
   });
 
+  test('卡住的事_同一階段可清掉_換階段自動清掉', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    const problem = { title: '回歸測試失敗', why: '舊的測試變紅', fix: '檢查 Fixtures', output: 'FAILED' };
+    S.toPhase(tests[0].id, 'green');
+    S.ok(['phase'], { test: tests[0].id, phase: 'green', problem });
+    assert.deepEqual(S.view().state.tdd.problem, problem);
+    S.ok(['phase'], { test: tests[0].id, phase: 'green', problem: null });
+    assert.equal(S.view().state.tdd.problem, null);
+    S.ok(['phase'], { test: tests[0].id, phase: 'green', problem });
+    S.ok(['phase'], { test: tests[0].id, phase: 'refactor' });
+    assert.equal(S.view().state.tdd.problem, null);
+  });
+
+  test('卡住的事沒有 title_拒絕', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.rejected(['phase'], { test: tests[0].id, phase: 'red', problem: { why: 'x' } }, /title/);
+  });
+
   test('教學內容_寫入後讀回同樣的結構', () => {
     const S = scenario();
     const { tests } = S.inTdd();
@@ -62,13 +82,13 @@ describe('換階段', () => {
     const S = scenario();
     S.inTdd();
     const db = S.db();
-    db.connection.exec('ALTER TABLE steps DROP COLUMN lesson; ALTER TABLE steps DROP COLUMN test_files; ALTER TABLE steps DROP COLUMN green_files; ALTER TABLE events DROP COLUMN text; ALTER TABLE steps DROP COLUMN refactor_files; PRAGMA user_version = 1;');
+    db.connection.exec('ALTER TABLE steps DROP COLUMN lesson; ALTER TABLE steps DROP COLUMN test_files; ALTER TABLE steps DROP COLUMN green_files; ALTER TABLE events DROP COLUMN text; ALTER TABLE steps DROP COLUMN refactor_files; ALTER TABLE steps DROP COLUMN problem; PRAGMA user_version = 1;');
     db.close();
     const again = S.db();
     try {
       assert.equal(again.get('PRAGMA user_version').user_version, SCHEMA);
       const columns = again.all('PRAGMA table_info(steps)').map((c: any) => c.name);
-      assert.deepEqual(['lesson', 'test_files', 'green_files', 'refactor_files'].filter(n => columns.includes(n)).length, 4);
+      assert.deepEqual(['lesson', 'test_files', 'green_files', 'refactor_files', 'problem'].filter(n => columns.includes(n)).length, 5);
     } finally { again.close(); }
   });
 

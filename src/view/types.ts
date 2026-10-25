@@ -1,4 +1,4 @@
-import type { CodeFile, DecisionOut, DocOut, EventOut, FeatureSummary } from '../core/types.ts';
+import type { CodeFile, StepProblem, DecisionOut, DocOut, EventOut, FeatureSummary } from '../core/types.ts';
 import type { FeatureStage, Phase, RedBy } from '../core/vocabulary.ts';
 import type { ChangedFile, CommitView } from './git.ts';
 
@@ -17,6 +17,7 @@ export type StepContent = {
   refactorFiles: CodeFile[];
   hint: string | null;
   lesson?: unknown;
+  problem: StepProblem | null;
   empty: boolean;
 };
 

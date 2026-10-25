@@ -42,6 +42,7 @@ export type StepRow = {
   refactor_files: string | null;
   hint: string | null;
   lesson: string | null;
+  problem: string | null;
   completed_at: string | null;
   commit_sha: string | null;
   binding: 'explicit' | 'inferred' | null;
@@ -120,7 +121,11 @@ export type PhaseInput = {
   refactorExample?: CodeFile | CodeFile[];
   hint?: string;
   lesson?: unknown;
+  problem?: StepProblem | null;
 };
+
+// 卡住這一步、要使用者調整的事（例如回歸測試失敗）；換階段自動清掉
+export type StepProblem = { title: string; why?: string; fix?: string; output?: string };
 
 export type CompleteInput = { test?: number | string; sha?: string };
 

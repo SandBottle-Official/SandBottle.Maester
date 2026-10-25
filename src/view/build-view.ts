@@ -32,6 +32,7 @@ function stepContent(step: StepRow): StepContent {
     greenFiles: listedFiles(step.green_files, greenExample),
     refactor: step.refactor, refactorFiles: step.refactor_files ? JSON.parse(step.refactor_files) : [], hint: step.hint,
     lesson: step.lesson ? JSON.parse(step.lesson) : undefined,
+    problem: step.problem ? JSON.parse(step.problem) : null,
     empty: step.test_code == null && step.test_files == null && step.story == null,
   };
 }

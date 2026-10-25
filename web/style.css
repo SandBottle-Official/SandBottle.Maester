@@ -8,7 +8,7 @@
   /* the phase colour drives the step: red while the AI writes the test, green on your turn, blue in refactor */
   --phase:var(--green); --phase-field:#07c4801f; --phase-ink:#5fe0ae;
   --radius-card:8px; --radius-control:6px; --radius-panel:16px;
-  --gap:12px; --step-w:clamp(560px,42vw,760px); --control-height:36px;
+  --gap:12px; --step-w:clamp(600px,52vw,1040px); --control-height:36px;
   --sel-bg:#17132a; --lede:#e6e6e6; --track:#00000055; --on-phase:#03130c; --hover-2:#303030;
   --lead-bg:var(--phase-field); --lead-ink:var(--text); --where:var(--phase-ink); --cta:var(--phase); --cta-ink:var(--on-phase);
   --code-bg:#110e1b; --code-fg:#f6f4fb; --ins:#07c4801a; --del:#ff2e3f1a;
@@ -198,6 +198,15 @@ pre .k{color:var(--tk-k)} pre .ty{color:var(--tk-ty)} pre .f{color:var(--tk-f)} 
 :root[data-theme="violet"] .phase-refactor{--phase-field:#1a6fd11a;--phase-ink:#12539e;--sel-bg:#fff}
 .empty{padding:48px 28px;color:var(--muted)}
 .empty h2{font-size:22px;color:var(--text);margin-bottom:8px}
+/* 要使用者調整的事：紅框卡片放在右欄最上面，跟階段顏色無關 */
+.step section.problem{margin:0 20px 8px;padding:18px 20px;border:1px solid var(--red);border-left-width:4px;border-radius:var(--radius-card);background:var(--del)}
+.step section.problem + section{border-top:0}
+.problem-tag{display:flex;align-items:center;gap:6px;color:var(--red);font-size:14px;font-weight:600}
+.problem h3{font-size:18px;margin:6px 0}
+.problem-why{color:var(--muted)}
+.problem-fix{margin-top:12px;padding:12px 14px;border-radius:var(--radius-control);background:var(--surface)}
+.problem-fix .q{font-weight:600;margin-bottom:4px}
+.problem .fold{border-top:0;margin-top:10px;padding:0}
 .banner{margin:16px 28px;padding:10px 14px;border-radius:var(--radius-card);background:var(--raised);color:var(--muted)}
 /* 長路徑從左邊截斷，檔名留在看得到的地方；完整路徑放 title */
 .code .bar span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:rtl;text-align:left;margin-right:8px}

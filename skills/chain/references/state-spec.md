@@ -63,7 +63,7 @@ Document kinds for `doc`:
 |---|---|---|
 | `maester plan` | `{ "feature": 1, "tasks": [{ "code": "02", "title": "…", "layer": "use case", "tests": [{ "id": 17, "name": "R10_…", "rule": "R10" }, { "name": "新的測試" }] }] }` | Replaces the whole plan; existing tests carry their `id` (see `show`), new ones do not. Tests up to and including the current step keep their id, name and order |
 | `maester tdd` | — | Only once, from the council stage; the current step becomes the first test 🔴 |
-| `maester phase` | `{ "test": 17, "phase": "green", "title", "story", "layer", "ruleRef", "testCode": { "file", "lang", "code" }, "failure", "greenExample": { "file", "lang", "code", "added": [3, 4] }, "refactor", "refactorExample": [{ "file", "lang", "code", "added" }], "hint" }` | Only red→green→refactor, or the same phase to update content; omitted fields keep their value |
+| `maester phase` | `{ "test": 17, "phase": "green", "title", "story", "layer", "ruleRef", "testCode": { "file", "lang", "code" }, "failure", "greenExample": { "file", "lang", "code", "added": [3, 4] }, "refactor", "refactorExample": [{ "file", "lang", "code", "added" }], "hint", "problem": { "title", "why", "fix", "output" } }` | Only red→green→refactor, or the same phase to update content; omitted fields keep their value, except `problem`, which a phase change clears |
 | `maester complete <test id> <sha>` | — | After the refactor commit (or a skipped refactor): binds explicitly, archives the step, moves to the next test 🔴 (after the last one the feature is done). The sha must be HEAD or an ancestor; red cannot complete; repeating the same sha does nothing |
 
 **Who writes the red test** is a per-repo setting (`meta.red_by` in `maester.db`, toggled on the page with 「AI 自動寫紅燈」; `show` prints it on the Task heading, `progress` and the page's stepper reflect it). Unset means `ai`. Read it every time a red step starts; a toggle never changes a red step already under way.
@@ -75,6 +75,8 @@ Document kinds for `doc`:
 
 `lesson` (optional) teaches the framework syntax and concepts of the step, shown under the selected test:
 `{ "intro": "一句話", "topics": [{ "name": "Hono", "points": [{ "term": "app.post(path, handler)", "analog": "C#：[HttpPost]", "text": "說明，可用 `行內程式碼`", "code": { "lang": "ts", "code": "…" } }] }] }`. `analog` compares with a language the user already knows and names that language; `code` is optional.
+
+`problem` (optional) is what blocks the step and needs the user to change something, shown as a red card at the top of the page with the primary button reading 「我改好了，再跑一次測試」: `title` one sentence naming it (for example 「回歸測試失敗：OrderTest 的 2 個測試變紅」), `why` the cause in business terms and which earlier behavior broke, `fix` what the user should change and where (no full answer), `output` just the failing lines of the test run. Write it whenever an event cannot move the step forward (tests not green after `tests_ran` or `refactor_done`, a regression in an earlier test, red for the wrong reason after `red_written`); send `"problem": null` once resolved within the same phase. A phase change clears it.
 
 `layer`: `契約`, `use case`, `整合`. Code is always raw text plus a Shiki language id in `lang`.
 
@@ -94,11 +96,11 @@ Always finish with `maester done <event id>`; until then the page shows the even
 |---|---|
 | `answer` | The server already recorded the answers; continue the council accordingly |
 | `approve_design` | Same as the user saying 「設計確定」 |
-| `red_written` | Run the tests (normally sent when the user wrote red; with `ai` it means the AI stopped at red). Red for the right reason (the behavior is missing, or the first compile error of a new contract) → record the user's test with `phase` red `testCode: { "file", "lines" }`, then `phase` green with the green example. Passing, or red for the wrong reason → write a `hint` saying what is wrong and stay in red; never edit the user's test |
-| `tests_ran` | Run the tests; when all green, commit the green (`feat:`/`test:`, `Green-By: user`) and enter refactor |
+| `red_written` | Run the tests (normally sent when the user wrote red; with `ai` it means the AI stopped at red). Red for the right reason (the behavior is missing, or the first compile error of a new contract) → record the user's test with `phase` red `testCode: { "file", "lines" }`, then `phase` green with the green example. Passing, or red for the wrong reason → write a `problem` saying what is wrong and stay in red; never edit the user's test |
+| `tests_ran` | Run the tests; when all green, commit the green (`feat:`/`test:`, `Green-By: user`) and enter refactor. Otherwise (this test still red, or an earlier test regressed) write a `problem` and stay in green |
 | `hint` | Write a `hint` in the same phase without giving away the full answer |
 | `help_green` | Same as 「幫我 green」: the AI writes the green, runs the tests, commits (`Green-By: ai`), then enters refactor |
-| `refactor_done` | Run the tests; commit any changes (`refactor:`), `complete` bound to HEAD, write the next red test |
+| `refactor_done` | Run the tests; anything red → write a `problem` and stay in refactor. Otherwise commit any changes (`refactor:`), `complete` bound to HEAD, write the next red test |
 | `refactor_skip` | No commit; `complete` bound to the green commit, write the next red test |
 | `next_round` | Older button, same as `refactor_done` |
 | `prompt` | `payload.text` is a message from the page; treat it as if typed in the terminal. Not tied to a step; accepted even when the page is stale |

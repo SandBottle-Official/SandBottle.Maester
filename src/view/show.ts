@@ -25,7 +25,8 @@ function testLine(test: PlannedTestOut, redBy: RedBy) {
   const step = test.step;
   const marker = step?.completed_at ? '- [x]' : step ? '→ [ ]' : '- [ ]';
   const phase = step?.phase && !step.completed_at ? ` · ${phaseLine(step.phase, redBy)}` : '';
-  return `${marker} ${test.name}（${test.id}）${phase}`;
+  const problem = step?.problem && !step.completed_at ? ` · ⚠ 等使用者調整：${JSON.parse(step.problem).title}` : '';
+  return `${marker} ${test.name}（${test.id}）${phase}${problem}`;
 }
 
 function planLines(store: Store, feature: FeatureRow) {

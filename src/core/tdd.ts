@@ -115,16 +115,18 @@ function codeColumns(prefix: 'test' | 'green', content: CodeFile | CodeFile[] | 
 }
 
 export function recordPhase(db: Db, input: PhaseInput = {}) {
-  const { test, phase, title, story, layer, ruleRef, testCode, failure, greenExample, refactor, refactorExample, hint, lesson } = input;
+  const { test, phase, title, story, layer, ruleRef, testCode, failure, greenExample, refactor, refactorExample, hint, lesson, problem } = input;
   return db.transaction(() => {
     const feature = writableFeature(db);
     const step = stepAt(db, feature, test);
     if (phase !== step.phase && (!step.phase || NEXT_PHASE[step.phase] !== phase)) reject(`不能從 ${step.phase} 換到 ${phase}`);
     rejectInvalidAddedLines(greenExample);
     rejectInvalidAddedLines(refactorExample);
+    if (problem && typeof problem.title !== 'string') reject('problem 要有 title（一句話說哪裡卡住）');
     const changes: Record<string, SQLInputValue | undefined> = {
       phase, title, story, layer, rule_ref: ruleRef, failure, refactor, hint,
       lesson: lesson === undefined ? undefined : JSON.stringify(lesson),
+      problem: problem ? JSON.stringify(problem) : problem === null || phase !== step.phase ? null : undefined,
       // 重構範例只有新格式，單一檔案也存成陣列
       refactor_files: refactorExample === undefined ? undefined : JSON.stringify([refactorExample].flat()),
       ...codeColumns('test', testCode),
