@@ -278,7 +278,7 @@ function tddStep(v, P) {
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button><button class="link" data-ev="help_green" ${lock ? 'disabled' : ''}>直接幫我寫綠燈</button></div>`
     : ph === 'refactor' ? `<button class="primary" data-ev="refactor_done" ${lock ? 'disabled' : ''} title="AI 跑測試、commit 重構，再寫下一個紅燈">重構好了，跑測試並 commit</button>
       <div class="minor"><button class="link" data-ev="refactor_skip" ${lock ? 'disabled' : ''} title="不 commit，直接進下一個測試">這輪不重構</button></div>`
-    : v.redBy !== 'user' ? `<p class="note">AI 正在寫這一輪的紅燈測試。</p>`
+    : v.redBy !== 'user' && !s.testCode ? `<p class="note">AI 正在寫這一輪的紅燈測試。</p>`
     : s.testCode ? `<button class="primary" data-ev="red_written" ${lock ? 'disabled' : ''} title="AI 跑測試，確認因為行為還沒實作而紅，再進綠燈">測試寫好了，跑測試</button>
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button></div>`
     : `<p class="note">AI 正在準備這一輪要你寫的測試。</p>`;

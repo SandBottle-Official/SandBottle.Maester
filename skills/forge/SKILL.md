@@ -61,8 +61,7 @@ When the user says 「開始 Task N」「繼續」 or a new conversation resumes
 
 Record every phase change immediately with `maester phase` (with the current test id), without waiting for a commit:
 
-- After running red: `phase: red` with the business sentence, test code (only `{ "file", "lines" }` covering the new test; `maester` reads it from disk), failure output (just the lines that show why it is red), green example and the Rule it covers.
-- Waiting for the user: `phase: green`.
+- After running red: `phase: green` in the same call (red→green at once; never stop at red, the page has no step for it) with the business sentence, test code (only `{ "file", "lines" }` covering the new test; `maester` reads it from disk), failure output (just the lines that show why it is red), green example and the Rule it covers.
 - Entering refactor: `phase: refactor` with the refactoring direction in `refactor` (「產品碼」 and 「測試碼」 as separate paragraphs, blank line between) and the example code in `refactorExample`, one entry per file.
 - Giving a hint: same phase, write `hint`.
 - Optionally a `lesson` for the framework syntax this step introduces; its `analog` is a comparison in a language the user already knows, naming that language inside the text (for example `C#：[HttpPost]`).
