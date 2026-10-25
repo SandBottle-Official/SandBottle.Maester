@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 — 2026-10-26
+
+### Features
+
+- The workbench follows the current step: when the AI moves to a new test, phase or Task, the page switches to it instead of staying where you were.
+- When a step is blocked (tests still red after 「跑測試」, a regression in an earlier test, a red test failing for the wrong reason), the page shows a red 「需要你調整」 card at the top with the cause, how to fix it and the failing output, and the main button reads 「我改好了，再跑一次測試」.
+- The right-hand step panel is wider.
+
 ## 1.2.3 — 2026-10-26
 
 ### Fixes
