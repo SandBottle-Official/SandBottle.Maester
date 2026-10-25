@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3 — 2026-10-26
+
+### Fixes
+
+- With 「AI 自動寫紅燈」 on, the AI now records the red test and enters green in one step, so the round no longer stalls at red. If it still stops at red, the page shows 「測試寫好了，跑測試」 instead of making you turn the switch off.
+
 ## 1.2.2 — 2026-10-25
 
 ### Fixes
