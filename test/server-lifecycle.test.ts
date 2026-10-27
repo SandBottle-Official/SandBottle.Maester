@@ -9,6 +9,7 @@ import { after, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { openerFor, serverSpawnOptions } from '../src/server/client.ts';
 import { PLUGIN_ROOT, PLUGIN_VERSION } from '../src/server/protocol.ts';
+import { GIT_SPAWN } from '../src/view/git.ts';
 import { scenario, submit, tempRepo } from './support/scenario.ts';
 import { CLI } from './support/system.ts';
 
@@ -144,6 +145,10 @@ describe('server 生命週期', () => {
   test('server_window_is_hidden_on_windows', () => {
     assert.equal(serverSpawnOptions(1).windowsHide, true);
     assert.equal(serverSpawnOptions(1).cwd, PLUGIN_ROOT);
+  });
+
+  test('git_polled_by_server_does_not_flash_windows_on_windows', () => {
+    assert.equal(GIT_SPAWN.windowsHide, true);
   });
 
   // Windows keeps both PATH and Path; replacing one does not hide the system opener reliably.

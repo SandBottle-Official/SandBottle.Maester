@@ -8,6 +8,8 @@ import type { ShaInfo, StepRow } from '../core/types.ts';
 export const TEST_PATH = /(^|\/)(tests?|__tests__)\/|Tests?\.[a-z]+$|\.(test|spec)\.[a-z]+$|(^|\/)[^/]*\.Tests?(\.[a-z]+)*\//i;
 const GIT_TIMEOUT_MS = 3000;
 const FIELD = '\x1f';
+// server 在背景執行沒有 console，Windows 會替每個沒隱藏的 git 子程序開新視窗，每秒輪詢就一直閃
+export const GIT_SPAWN = { windowsHide: true } as const;
 
 export type ChangedFile = { file: string; add: number; del: number; test: boolean };
 
@@ -16,7 +18,7 @@ export type GreenBy = 'user' | 'ai';
 export type CommitView = { sha: string; subject?: string; greenBy?: GreenBy | null; missing?: true; inferred: boolean; files: ChangedFile[] };
 
 export function git(repo: string, args: string[]): string {
-  try { return execFileSync('git', ['-C', repo, '-c', 'core.quotePath=false', ...args], { encoding: 'utf8', timeout: GIT_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'ignore'] }); }
+  try { return execFileSync('git', ['-C', repo, '-c', 'core.quotePath=false', ...args], { ...GIT_SPAWN, encoding: 'utf8', timeout: GIT_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'ignore'] }); }
   catch { return ''; }
 }
 
@@ -47,7 +49,7 @@ export function shaInfo(repo: string, sha: string): ShaInfo {
 
 function isAncestorOfHead(repo: string, sha: string) {
   try {
-    execFileSync('git', ['-C', repo, 'merge-base', '--is-ancestor', sha, 'HEAD'], { stdio: 'ignore' });
+    execFileSync('git', ['-C', repo, 'merge-base', '--is-ancestor', sha, 'HEAD'], { ...GIT_SPAWN, stdio: 'ignore' });
     return true;
   } catch { return false; }
 }

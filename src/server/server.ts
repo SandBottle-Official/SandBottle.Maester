@@ -16,11 +16,16 @@ const WEB_ROOT = path.join(PLUGIN_ROOT, 'web');
 const KEY = readKey();
 const PORT = port();
 const MAX_EVENT_BYTES = 64_000;
-const STREAM_INTERVAL_MS = 1000;
+const STREAM_DEBOUNCE_MS = 200;
+// 監看漏接的（例如 worktree 的 .git 在 repo 外）靠慢速輪詢補；監看不了才退回每秒輪詢
+const STREAM_FALLBACK_MS = 10_000;
+const STREAM_POLL_MS = 1000;
 const MIME: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png' };
 const LOCAL_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
 const LOCAL_ORIGINS = new Set([...LOCAL_HOSTS].map(host => `http://${host}`));
-const streams = new Map<string, Set<http.ServerResponse>>();
+const streams = new Map<string, Set<() => void>>();
+const watchers = new Map<string, fs.FSWatcher>();
+const pendingRefresh = new Set<string>();
 // shortcut: one agent per repo, last statusline wins; key by session_id if several sessions on one repo need their own row.
 const agents = new Map<string, AgentInfo>();
 let limits: AccountLimits | undefined;
@@ -60,7 +65,34 @@ function pingBody(): Ping {
   return { ok: true, protocol: PROTOCOL, version: PLUGIN_VERSION, pid: process.pid, root: PLUGIN_ROOT, clients: Object.fromEntries([...streams].map(([repo, set]) => [repo, set.size])) };
 }
 
-// shortcut: re-renders every second instead of fs.watch; switch to watching when many tabs or huge repos make this costly.
+const refresh = (repo: string) => streams.get(repo)?.forEach(tick => tick());
+const refreshAll = () => [...streams.keys()].forEach(refresh);
+
+function refreshSoon(repo: string) {
+  if (pendingRefresh.has(repo)) return;
+  pendingRefresh.add(repo);
+  setTimeout(() => { pendingRefresh.delete(repo); refresh(repo); }, STREAM_DEBOUNCE_MS);
+}
+
+// 重算畫面本身會碰到的檔案：開關 maester.db 會建刪 -shm/-wal，git 會碰 index 和 lock；算進去就自己觸發自己。
+// 真正的寫入在最後一個連線關閉時會寫回 maester.db 本體，所以不會漏
+const isOwnNoise = (file: string) => /^\.git[\\/](index|.*\.lock$)|maester\.db-(shm|wal)$/.test(file);
+
+function watchRepo(repo: string) {
+  try {
+    const watcher = fs.watch(repo, { recursive: true }, (_event, file) => { if (!file || !isOwnNoise(file)) refreshSoon(repo); });
+    watcher.on('error', () => { watcher.close(); watchers.delete(repo); });
+    watchers.set(repo, watcher);
+  } catch {}
+}
+
+function unwatchRepo(repo: string) {
+  streams.delete(repo);
+  watchers.get(repo)?.close();
+  watchers.delete(repo);
+}
+
+// 檔案有變才重算畫面：每次重算要跑好幾個 git，固定輪詢在 Windows 和大 repo 上太貴
 function streamView(req: http.IncomingMessage, res: http.ServerResponse, repo: string, featureId: string | null) {
   res.writeHead(200, { ...SECURITY_HEADERS, 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
   let last = '';
@@ -71,12 +103,17 @@ function streamView(req: http.IncomingMessage, res: http.ServerResponse, repo: s
     res.write(`data: ${view}\n\n`);
   };
   tick();
-  const timer = setInterval(tick, STREAM_INTERVAL_MS);
-  if (!streams.has(repo)) streams.set(repo, new Set());
-  streams.get(repo)!.add(res);
+  if (!streams.has(repo)) {
+    streams.set(repo, new Set());
+    watchRepo(repo);
+  }
+  streams.get(repo)!.add(tick);
+  const timer = setInterval(tick, watchers.has(repo) ? STREAM_FALLBACK_MS : STREAM_POLL_MS);
   req.on('close', () => {
     clearInterval(timer);
-    streams.get(repo)?.delete(res);
+    const ticks = streams.get(repo);
+    ticks?.delete(tick);
+    if (ticks?.size === 0) unwatchRepo(repo);
   });
 }
 
@@ -114,6 +151,7 @@ function receiveAgent(req: http.IncomingMessage, res: http.ServerResponse, repo:
     }
     catch { return send(res, 400, { error: 'bad json' }); }
     send(res, 200, { ok: true });
+    refreshAll();
   });
 }
 
@@ -155,7 +193,7 @@ const server = http.createServer((req, res) => {
     case '/api/statusline':
       if (req.method !== 'POST') break;
       if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
-      try { installStatusline(); return send(res, 200, { ok: true }); }
+      try { installStatusline(); send(res, 200, { ok: true }); return refreshAll(); }
       catch (error) { return send(res, error instanceof Rejected ? 409 : 500, { error: messageOf(error) }); }
     case '/api/agent':
       if (req.method !== 'POST') break;
