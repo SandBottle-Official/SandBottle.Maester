@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 — 2026-10-27
+
+### Fixes
+
+- On Windows, the workbench no longer flashes a console window every second: git runs started by the background server are now hidden.
+- The workbench no longer re-runs git every second. It watches the repo and refreshes only when a file or `maester.db` changes, so an idle page costs nothing and edits still show up at once.
+
 ## 1.3.0 — 2026-10-26
 
 ### Features
