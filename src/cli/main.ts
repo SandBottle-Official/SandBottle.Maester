@@ -112,7 +112,9 @@ async function statusline(repo: string | null, args: string[]) {
   await forwardStatusline(text);
   const command = originalCommand();
   if (command) {
-    spawnSync(command, { shell: true, input: text, stdio: ['pipe', 'inherit', 'inherit'] });
+    // Claude Code 在 Windows 用 Git Bash 跑 statusline，原本的指令是 bash 語法；shell: true 會交給 cmd.exe 而跑不出來
+    const shell = process.platform === 'win32' ? process.env.CLAUDE_CODE_GIT_BASH_PATH || 'bash' : true;
+    spawnSync(command, { shell, input: text, stdio: ['pipe', 'inherit', 'inherit'] });
     return;
   }
   const line = repo ? progressLine(repo) : '';
