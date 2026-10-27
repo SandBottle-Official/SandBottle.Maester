@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2 — 2026-10-27
+
+### Fixes
+
+- On Windows, your own statusline keeps working after turning on 「顯示用量」: Maester now runs it with Git Bash, the same way Claude Code does, instead of cmd.exe.
+
 ## 1.3.1 — 2026-10-27
 
 ### Fixes
