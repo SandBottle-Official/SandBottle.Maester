@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0 — 2026-10-28
+
+### Features
+
+- Maester follows your way: when your green, refactor, own red test or council wording differs from what Maester wrote or prescribed and the tests are green, the AI adopts it for every later test and example instead of asking you to redo it. Each adjustment is recorded with `maester adapt` (what Maester did, what you did, and why), kept per repo across features with its full history, so the next session understands how you think.
+- `maester show` starts with 「使用者的寫法」, the latest adjustment of each topic, and the workbench drawer shows the same under 「你的寫法」 with earlier versions folded underneath.
+- Asking from the page or terminal to change how Maester works opens a 臨時動議: each master gives one sentence and the Skeptic one counterexample, you decide, and their sentences are saved with the adjustment.
+
 ## 1.3.2 — 2026-10-27
 
 ### Fixes
