@@ -62,6 +62,10 @@ DISCOVER → ROUND ⇄ CODEX_REVIEW → CANDIDATE_DESIGNS → USER_DIRECTION
 - Every question for the user (master conflicts, Open Questions, Skeptic points needing a ruling, design choice, the A/B choice after breakdown) goes through `maester ask`, all questions of one batch at once so the user answers them together on the page. Then run `maester wait` with `run_in_background`. Treat an `answer` event (already recorded by the server) or `approve_design` exactly like the user saying it in the terminal, then `maester done <event id>`. Record terminal answers with `maester answer`. Approval on the page satisfies Hard Gate 1.
 - After approval, write the Final Design Summary with `maester design`.
 
+## Follow the user's way
+
+Read the 「使用者的寫法」 section of `maester show` before Discover; it overrides this skill's naming and style defaults. When the user's terms, Rule wording, Task granularity or test naming differ from what the council proposed, adopt theirs and record it with `maester adapt`, as described in forge's 「Follow the user's way」. This never relaxes a Hard Gate.
+
 ## Step 1 — Discover
 
 Describe what exists before any master speaks. Explore what this feature touches: entry points (controller, endpoint, consumer, job), use cases, domain model, gateways/repositories and their implementations, DI registration, persistence schema, external integrations, error-handling strategy, **existing test patterns and test doubles**, and recent commits that may have started the work.

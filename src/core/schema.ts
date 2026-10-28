@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-export const SCHEMA = 6;
+export const SCHEMA = 7;
 
 const DDL = `
 CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);
@@ -34,6 +34,8 @@ CREATE TABLE events(id TEXT PRIMARY KEY, feature_id INTEGER NOT NULL REFERENCES 
   status TEXT NOT NULL CHECK(status IN ('pending','processing','done')), ctx_stage TEXT, ctx_test_id INTEGER, ctx_phase TEXT, text TEXT);
 CREATE TABLE event_answers(event_id TEXT NOT NULL REFERENCES events(id), ord INTEGER NOT NULL, decision TEXT NOT NULL, value TEXT NOT NULL,
   free INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE adaptations(id INTEGER PRIMARY KEY, topic TEXT NOT NULL, stage TEXT, feature_id INTEGER REFERENCES features(id), test_id INTEGER,
+  maester_way TEXT NOT NULL, user_way TEXT NOT NULL, why TEXT, council TEXT, created_at TEXT NOT NULL);
 `;
 
 const UPGRADES: Record<number, string> = {
@@ -42,6 +44,8 @@ const UPGRADES: Record<number, string> = {
   3: 'ALTER TABLE events ADD COLUMN text TEXT;',
   4: 'ALTER TABLE steps ADD COLUMN refactor_files TEXT;',
   5: 'ALTER TABLE steps ADD COLUMN problem TEXT;',
+  6: `CREATE TABLE adaptations(id INTEGER PRIMARY KEY, topic TEXT NOT NULL, stage TEXT, feature_id INTEGER REFERENCES features(id), test_id INTEGER,
+  maester_way TEXT NOT NULL, user_way TEXT NOT NULL, why TEXT, council TEXT, created_at TEXT NOT NULL);`,
 };
 
 export function migrateSchema(connection: DatabaseSync, version: number) {

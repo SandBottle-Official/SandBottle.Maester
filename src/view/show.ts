@@ -29,6 +29,13 @@ function testLine(test: PlannedTestOut, redBy: RedBy) {
   return `${marker} ${test.name}（${test.id}）${phase}${problem}`;
 }
 
+// 每個主題只印最新一筆：那是現在要照著寫的；歷史留在 DB
+function adaptationLines(store: Store) {
+  const latest = [...new Map(store.adaptations().map(a => [a.topic, a])).values()];
+  return latest.length ? ['', '## 使用者的寫法（Maester 已照著調整，之後的測試與範例都照這個）',
+    ...latest.map(a => `- ${a.topic}：${a.user}（原本：${a.maester}${a.why ? `；因為 ${a.why}` : ''}）`)] : [];
+}
+
 function planLines(store: Store, feature: FeatureRow) {
   const plan = store.plan(feature.id);
   if (!plan.length) return [];
@@ -63,6 +70,7 @@ export function showText(repo: string): string {
     return [
       `# 功能 ${feature.id}：${feature.name}（${STAGE_LABEL[feature.stage]}）`,
       ...otherFeaturesLine(store),
+      ...adaptationLines(store),
       '', `## 圓桌：${feature.rt_state ?? '—'}${feature.scale ? ` · ${feature.scale}` : ''}`, feature.rt_note ?? '',
       ...decisionLines(store, feature),
       ...latestDocLines(store, feature),

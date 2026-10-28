@@ -20,7 +20,7 @@ Feature (one is current; others can be viewed on the page), Task, test (an immut
 
 | Command | Use |
 |---|---|
-| `maester show` | **Read first when resuming**: current feature, council stage, decisions, latest council document of each kind, Tasks and test ids with completion, current step, open events |
+| `maester show` | **Read first when resuming**: current feature, the user's way (latest `adapt` per topic), council stage, decisions, latest council document of each kind, Tasks and test ids with completion, current step, open events |
 | `maester progress` | One-line progress for a statusline |
 | `maester agent` | Reads Claude Code's statusline JSON from stdin and forwards model, context, 5-hour/weekly usage and cost to the page; kept only in server memory, never in `maester.db`; prints nothing. `--hook` (PostToolUse/Stop, async) reads the context tokens from the transcript instead, and does nothing once the statusline is connected |
 | `maester statusline` | Claude Code's statusline, set automatically by the first SessionStart (or the page's 「顯示用量」 button): forwards the JSON like `agent`, then runs the user's original statusline (or prints `progress`). `--uninstall` restores the original and it is never set automatically again, nor after the user replaces it. SessionStart re-points it after a plugin update |
@@ -79,6 +79,14 @@ Document kinds for `doc`:
 `problem` (optional) is what blocks the step and needs the user to change something, shown as a red card at the top of the page with the primary button reading 「我改好了，再跑一次測試」: `title` one sentence naming it (for example 「回歸測試失敗：OrderTest 的 2 個測試變紅」), `why` the cause in business terms and which earlier behavior broke, `fix` what the user should change and where (no full answer), `output` just the failing lines of the test run. Write it whenever an event cannot move the step forward (tests not green after `tests_ran` or `refactor_done`, a regression in an earlier test, red for the wrong reason after `red_written`); send `"problem": null` once resolved within the same phase. A phase change clears it.
 
 `layer`: `契約`, `use case`, `整合`. Code is always raw text plus a Shiki language id in `lang`.
+
+## Adapting to the user's way
+
+| Command | Input | Rule |
+|---|---|---|
+| `maester adapt` | `{ "topic": "測試命名", "stage": "green", "test": 17, "maester": "what Maester wrote or prescribed", "user": "what the user wrote instead", "why": "the user's reasoning", "council": [{ "who": "Uncle Bob", "text": "…" }] }` | Per repo, kept across features; append-only, so a topic adapted again keeps its history. `topic`, `maester` and `user` are required; `council` is optional (the mini council) |
+
+`show` prints the latest entry of each topic under 「使用者的寫法」; every later test, example and council document follows it.
 
 ## Page events
 

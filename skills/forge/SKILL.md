@@ -53,11 +53,17 @@ Open every round with one or two sentences in the business's ubiquitous language
 
 Report only: that business sentence, the test name, why it is red, or the files changed. Test code, green and refactor examples go only into `maester phase`; the workbench renders them, so never repeat code in the reply. No explanations, no lists of possibilities. Plans contain no commit steps.
 
+## Follow the user's way
+
+Maester's rules and examples are a starting point, not a cage. When the user's code or words differ from what Maester wrote or prescribed (a green written another way, a refactor that went elsewhere, their own red test's style, naming, structure, test layout, terms in the council), and the tests are green, **adopt the user's way**: do not ask them to redo it, and write every later test, example and document the same way. Record it at once with `maester adapt` (`topic`, what Maester did, what the user did, and `why`: the reasoning behind it, in the user's words when they gave it, otherwise your reading of it marked as a guess). A topic that changes again gets a new `adapt`; never rewrite history. Only a Hard Gate (an invented business rule, a broken test, an unapproved design) is raised instead of adopted.
+
+When the user asks for an adjustment from the page (a `prompt` event) or the terminal that changes how Maester works, and it is more than a one-off wording fix, hold a **mini council** first: Uncle Bob, Fowler and Evans each give one sentence on it and the Skeptic one counterexample; the user decides; then `maester adapt` with those sentences in `council`. Keep it to one short reply; it is not a full Round and records no council document.
+
 ## Progress on the workbench
 
 Plans, progress and every step's content live only in the repo's `.maester/maester.db`, written through `maester`. No markdown plans, no json. A statusline can show `maester progress`. The page shows the agent's context and 5-hour/weekly usage out of the box (Maester connects itself to the statusline on the first SessionStart and keeps the user's own statusline output).
 
-When the user says 「開始 Task N」「繼續」 or a new conversation resumes, run `maester open` and `maester show`, continue from the current step (→) and report where you are; when it stops at 🟢 the user is implementing, so do not rewrite the red test. When Tasks or tests change, write the whole plan with `maester plan` (existing tests keep the ids printed by `show`; nothing up to the current step may change).
+When the user says 「開始 Task N」「繼續」 or a new conversation resumes, run `maester open` and `maester show` (its 「使用者的寫法」 section overrides this skill's style rules), continue from the current step (→) and report where you are; when it stops at 🟢 the user is implementing, so do not rewrite the red test. When Tasks or tests change, write the whole plan with `maester plan` (existing tests keep the ids printed by `show`; nothing up to the current step may change).
 
 Record every phase change immediately with `maester phase` (with the current test id), without waiting for a commit:
 

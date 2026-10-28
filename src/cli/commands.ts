@@ -62,6 +62,7 @@ export const WRITE_COMMANDS: Record<string, WriteCommand> = {
   plan: store => store.writePlan(readInput()),
   phase: (store, _, repo) => store.phase(phaseInput(repo)),
   complete: (store, [test, sha], repo) => store.complete({ test, sha }, shaInfo(repo, sha)),
+  adapt: store => store.adapt(readInput()),
   done: (store, [id]) => store.done(id),
 };
 

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { adapt, readAdaptations } from './adaptations.ts';
 import { Db } from './db.ts';
 import { reject } from './errors.ts';
 import { claimNextEvent, markEventDone, readEvents, requeueProcessing, submitEvent } from './events.ts';
@@ -10,7 +11,7 @@ import { dbPath, hasLegacyJson } from './paths.ts';
 import { addDoc, answer, ask, readDecisions, readDocs, setStage } from './roundtable.ts';
 import { migrateSchema, SCHEMA } from './schema.ts';
 import { completeStep, readPlan, recordPhase, startTdd, writePlan } from './tdd.ts';
-import type { AnswerInput, CompleteInput, DecisionInput, DocInput, EventInput, EventRow, ImportFeatureInput, PhaseInput, PlanInput, ShaInfo, StageInput, StartFeatureInput } from './types.ts';
+import type { AdaptationInput, AnswerInput, CompleteInput, DecisionInput, DocInput, EventInput, EventRow, ImportFeatureInput, PhaseInput, PlanInput, ShaInfo, StageInput, StartFeatureInput } from './types.ts';
 
 export class Store extends Db {
   close() { this.connection.close(); }
@@ -35,6 +36,9 @@ export class Store extends Db {
   phase(input?: PhaseInput) { return recordPhase(this, input); }
   complete(input: CompleteInput, commit: ShaInfo) { return completeStep(this, input, commit); }
   plan(featureId: number) { return readPlan(this, featureId); }
+
+  adapt(input?: AdaptationInput) { return adapt(this, input); }
+  adaptations() { return readAdaptations(this); }
 
   submit(event?: EventInput) { return submitEvent(this, event); }
   claim() { return claimNextEvent(this); }
