@@ -5,7 +5,7 @@ import { adapt, readAdaptations } from './adaptations.ts';
 import { Db } from './db.ts';
 import { reject } from './errors.ts';
 import { claimNextEvent, markEventDone, readEvents, requeueProcessing, submitEvent } from './events.ts';
-import { currentFeature, featureById, listFeatures, redBy, setRedBy, startFeature, switchFeature } from './features.ts';
+import { currentFeature, featureById, listFeatures, redBy, setRedBy, startFeature, stop, stoppedAt, switchFeature } from './features.ts';
 import { importFeature } from './import-feature.ts';
 import { dbPath, hasLegacyJson } from './paths.ts';
 import { addDoc, answer, ask, readDecisions, readDocs, setStage } from './roundtable.ts';
@@ -23,6 +23,18 @@ export class Store extends Db {
   features() { return listFeatures(this); }
   redBy() { return redBy(this); }
   setRedBy(value: unknown) { return setRedBy(this, value); }
+  stop() { return stop(this); }
+  stoppedAt() { return stoppedAt(this); }
+
+  // 網頁上的「新建會議」「繼續這個會議」：先換目前功能，再留事件給 maester wait 領
+  startFromPage(name: unknown) {
+    const { feature } = startFeature(this, { name: typeof name === 'string' ? name.trim() : undefined });
+    return { feature, ...submitEvent(this, { type: 'start_council', feature }) };
+  }
+  resumeFromPage(id: unknown) {
+    const { feature } = switchFeature(this, String(id));
+    return { feature, ...submitEvent(this, { type: 'resume', feature }) };
+  }
 
   addDoc(doc?: DocInput) { return addDoc(this, doc); }
   setStage(input?: StageInput) { return setStage(this, input); }

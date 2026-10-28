@@ -1,5 +1,6 @@
 ---
 name: forge
+user-invocable: false
 description: Maester's outside-in TDD rhythm — API contract test first (use case replaced by a test double), then use-case tests drive out the domain; the AI writes one failing test at a time and the user writes the code that makes it pass, forging one link of their chain per test. Use when executing or planning TDD Tasks, or when the user says 開始 Task N, 下一個測試, 下一輪, 由我實作, 照我的節奏, outside-in, 契約測試, forge.
 ---
 
@@ -13,7 +14,7 @@ Respond, write plan/phase content, test names and lessons in Traditional Chinese
 
 ## Setup
 
-The CLI is `node <plugin-root>/bin/maester.mjs`; `<plugin-root>` is two directories above this SKILL.md. Below it is written `maester`. Commands and payloads are defined in [../chain/references/state-spec.md](../chain/references/state-spec.md).
+The CLI is `node <plugin-root>/bin/maester.mjs`; `<plugin-root>` is two directories above this SKILL.md. Below it is written `maester`. Commands and payloads are defined in [../open/references/state-spec.md](../open/references/state-spec.md).
 
 ## Test layers (outside in)
 

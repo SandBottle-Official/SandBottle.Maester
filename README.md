@@ -6,9 +6,8 @@
 
 Maester is a plugin for Claude Code and Codex that keeps you doing the part of the work that matters while building with AI:
 
-- **`/maester:council`**: three masters and a Skeptic review the design; you decide the business rules, and the result becomes a Decision Table and TDD tasks.
-- **`/maester:forge`**: outside-in TDD. The AI writes the failing test; you write the code that makes it pass.
-- **`/maester:chain`**: a local workbench page showing council and TDD progress.
+- **`/maester:open`**: opens the local workbench, where you pick a past meeting or start a new one. A meeting is a 臨時動議: three masters and a Skeptic review the design, you decide the business rules, and the result becomes a Decision Table and TDD tasks. Then comes outside-in TDD: the AI writes the failing test; you write the code that makes it pass.
+- **`/maester:stop`**: stops every Maester listener in this repo.
 
 ## Requirements
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { COMMAND_NAMES } from '../src/cli/commands.ts';
 
 const SKILLS_ROOT = fileURLToPath(new URL('../skills/', import.meta.url));
-const SKILL_NAMES = ['council', 'forge', 'chain'];
+const SKILL_NAMES = ['council', 'forge', 'open', 'stop'];
 const MAX_DESCRIPTION_LENGTH = 1024;
 
 const skillText = (name: string) => fs.readFileSync(path.join(SKILLS_ROOT, name, 'SKILL.md'), 'utf8');
@@ -37,7 +37,7 @@ describe('skills', () => {
   test('descriptions_keep_chinese_triggers', () => {
     assert.match(frontmatter('council').description, /大師圓桌/);
     for (const trigger of ['開始 Task', '下一個測試', '由我實作']) assert.match(frontmatter('forge').description, new RegExp(trigger));
-    assert.match(frontmatter('chain').description, /打開網頁看進度/);
+    assert.match(frontmatter('open').description, /打開網頁看進度/);
   });
 
   test('no_personal_or_legacy_names', () => {
@@ -47,8 +47,14 @@ describe('skills', () => {
     }
   });
 
+  test('only_open_and_stop_are_slash_commands', () => {
+    assert.equal(frontmatter('council')['user-invocable'], 'false');
+    assert.equal(frontmatter('forge')['user-invocable'], 'false');
+    for (const name of ['open', 'stop']) assert.equal(frontmatter(name)['user-invocable'], undefined);
+  });
+
   test('state_spec_lists_every_cli_command', () => {
-    const spec = fs.readFileSync(path.join(SKILLS_ROOT, 'chain', 'references', 'state-spec.md'), 'utf8');
+    const spec = fs.readFileSync(path.join(SKILLS_ROOT, 'open', 'references', 'state-spec.md'), 'utf8');
     for (const command of COMMAND_NAMES) assert.match(spec, new RegExp(`\`maester ${command}\\b`), command);
   });
 });

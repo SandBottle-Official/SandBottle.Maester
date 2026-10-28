@@ -1,5 +1,5 @@
 export const RT_STATES = ['DISCOVER', 'ROUND', 'CODEX_REVIEW', 'CANDIDATE_DESIGNS', 'USER_DIRECTION', 'DECISION_TABLE', 'OPEN_QUESTIONS', 'FINAL_CODEX_REVIEW', 'USER_APPROVAL', 'TASK_BREAKDOWN'] as const;
-export const EVENT_TYPES = ['answer', 'approve_design', 'tests_ran', 'hint', 'help_green', 'refactor_done', 'refactor_skip', 'next_round', 'prompt', 'red_written'] as const;
+export const EVENT_TYPES = ['answer', 'approve_design', 'tests_ran', 'hint', 'help_green', 'refactor_done', 'refactor_skip', 'next_round', 'prompt', 'red_written', 'start_council', 'resume'] as const;
 export const DOC_KINDS = ['discover', 'round', 'codex', 'candidates', 'decisionTable', 'design'] as const;
 export const DESIGN_LIST_SECTIONS = ['rejected', 'risks', 'followups'] as const;
 

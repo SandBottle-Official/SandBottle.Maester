@@ -14,6 +14,7 @@ Feature (one is current; others can be viewed on the page), Task, test (an immut
 |---|---|
 | `maester open` | Prepare the repo, start the server if needed, open the page and print its URL |
 | `maester url` | Print the page URL without opening it |
+| `maester stop` | Stop every `maester wait` of this repo: each exits on its next poll printing `{ "stopped": true }`. A `wait` started later listens again |
 | `maester ensure` | Start the server if it is not running (or is an outdated version); `--hook` is silent and never fails |
 
 ## Reading
@@ -24,7 +25,7 @@ Feature (one is current; others can be viewed on the page), Task, test (an immut
 | `maester progress` | One-line progress for a statusline |
 | `maester agent` | Reads Claude Code's statusline JSON from stdin and forwards model, context, 5-hour/weekly usage and cost to the page; kept only in server memory, never in `maester.db`; prints nothing. `--hook` (PostToolUse/Stop, async) reads the context tokens from the transcript instead, and does nothing once the statusline is connected |
 | `maester statusline` | Claude Code's statusline, set automatically by the first SessionStart (or the page's 「顯示用量」 button): forwards the JSON like `agent`, then runs the user's original statusline (or prints `progress`). `--uninstall` restores the original and it is never set automatically again, nor after the user replaces it. SessionStart re-points it after a plugin update |
-| `maester wait` | Claim the next pending event of the current feature and print it (marked processing); waits when there is none. |
+| `maester wait` | Claim the next pending event of the current feature and print it (marked processing); waits when there is none, also before any feature exists (the page can start one). Prints `{ "stopped": true }` and exits after `maester stop` |
 
 ## Features
 
@@ -111,6 +112,8 @@ Always finish with `maester done <event id>`; until then the page shows the even
 | `refactor_done` | Run the tests; anything red → write a `problem` and stay in refactor. Otherwise commit any changes (`refactor:`), `complete` bound to HEAD, write the next red test |
 | `refactor_skip` | No commit; `complete` bound to the green commit, write the next red test |
 | `next_round` | Older button, same as `refactor_done` |
+| `start_council` | The user started a new meeting on the page; the server already created it as the current feature at DISCOVER. Run the council from Discover |
+| `resume` | The user chose an unfinished meeting on the page; the server already made it current. `show`, then continue its council or TDD where it stopped |
 | `prompt` | `payload.text` is a message from the page; treat it as if typed in the terminal. Not tied to a step; accepted even when the page is stale |
 
 From sending an event until the AI marks it done, the page locks its buttons and shows a working indicator; if the AI was interrupted the user can press 「解除鎖定」. So every event, `prompt` included, must end with `done`.

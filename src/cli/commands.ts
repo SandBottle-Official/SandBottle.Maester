@@ -64,6 +64,7 @@ export const WRITE_COMMANDS: Record<string, WriteCommand> = {
   complete: (store, [test, sha], repo) => store.complete({ test, sha }, shaInfo(repo, sha)),
   adapt: store => store.adapt(readInput()),
   done: (store, [id]) => store.done(id),
+  stop: store => store.stop(),
 };
 
 export const READ_COMMANDS = ['ensure', 'open', 'url', 'progress', 'show', 'migrate', 'wait', 'agent', 'statusline'] as const;

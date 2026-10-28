@@ -34,6 +34,15 @@ export function setRedBy(db: Db, value: unknown) {
   return { redBy: value };
 }
 
+// maester stop 之後，比這個時間早開始的 maester wait 都會自己結束
+export const stoppedAt = (db: Db): string => db.get<{ value: string }>("SELECT value FROM meta WHERE key = 'stopped_at'")?.value ?? '';
+
+export function stop(db: Db) {
+  const at = now();
+  db.run("INSERT INTO meta(key, value) VALUES ('stopped_at', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", at);
+  return { stopped: at };
+}
+
 export function touchFeature(db: Db, id: number) {
   db.run('UPDATE features SET updated_at = ? WHERE id = ?', now(), id);
 }

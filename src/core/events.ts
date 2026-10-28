@@ -6,6 +6,9 @@ import { currentStep } from './tdd.ts';
 import type { Answer, EventInput, EventOut, EventRow, FeatureRow, StepRow } from './types.ts';
 import { EVENT_TYPES, isOneOf, MAX_PROMPT_LENGTH } from './vocabulary.ts';
 
+// 不綁在某一步的事件：網頁訊息、從網頁新建或接續會議
+const CONTEXT_FREE = new Set<string>(['prompt', 'start_council', 'resume']);
+
 const newEventId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
 function promptText(payload: EventInput['payload']): string {
@@ -28,9 +31,8 @@ export function submitEvent(db: Db, { type, payload, feature: featureId, ctx = {
     if (!feature || Number(featureId) !== feature.id) reject('這不是目前功能，只能查看');
     if (feature.stage === 'done') reject(`「${feature.name}」已完成，只能查看`);
     const step = currentStep(db, feature.id);
-    const isPrompt = type === 'prompt';
-    const text = isPrompt ? promptText(payload) : null;
-    if (!isPrompt) rejectStaleContext(feature, step, ctx);
+    const text = type === 'prompt' ? promptText(payload) : null;
+    if (!CONTEXT_FREE.has(type)) rejectStaleContext(feature, step, ctx);
 
     const id = newEventId();
     db.run("INSERT INTO events(id, feature_id, ts, type, status, ctx_stage, ctx_test_id, ctx_phase, text) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)",

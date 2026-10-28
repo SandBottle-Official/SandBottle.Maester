@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { messageOf, reject } from '../core/errors.ts';
-import { dataDir, dbPath, port } from '../core/paths.ts';
+import { dataDir, dbPath, hasLegacyJson, port } from '../core/paths.ts';
 import { openStore, type Store } from '../core/store.ts';
 import { migrateLegacyJson } from '../migrate/legacy-json.ts';
 import { adoptLegacyData, adoptLegacyHome } from '../migrate/legacy-workbench.ts';
@@ -54,6 +54,8 @@ function hookSource(): string {
 async function open(repo: string | null) {
   const root = requireRepo(repo);
   prepareRepo(root);
+  // 先建好 maester.db：還沒有會議時 maester wait 也要能等網頁的「新建會議」
+  if (!hasLegacyJson(root)) withStore(root, () => null);
   await ensureServer();
   const url = workbenchUrl(root);
   if ((await ping())?.clients?.[root]) return console.log(`已經開著：${url}`);
@@ -65,8 +67,9 @@ async function open(repo: string | null) {
 
 async function waitForEvent(repo: string | null) {
   if (!repo || !fs.existsSync(dbPath(repo))) reject('這個 repo 還沒有 maester.db');
+  const startedAt = new Date().toISOString();
   for (;;) {
-    const event = withStore(repo, store => store.claim(), { write: false });
+    const event = withStore(repo, store => store.stoppedAt() > startedAt ? { stopped: true } : store.claim(), { write: false });
     if (event) return console.log(JSON.stringify(event));
     await sleep(WAIT_INTERVAL_MS);
   }
@@ -147,7 +150,7 @@ async function run([command, ...args]: string[]) {
     case 'agent': return args.includes('--hook') ? forwardHook() : forwardStatusline(readStdin());
     case 'statusline': return statusline(repo, args);
     default:
-      console.log('用法見 skills/chain/references/state-spec.md');
+      console.log('用法見 skills/open/references/state-spec.md');
       process.exitCode = USAGE_EXIT_CODE;
   }
 }

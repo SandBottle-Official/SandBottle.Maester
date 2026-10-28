@@ -73,6 +73,11 @@ h1{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;min-wid
 .drawer a.on{background:var(--active);color:var(--text);font-weight:500}
 .drawer a.later{opacity:.5}
 .drawer a .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.new-meeting{display:flex;flex-wrap:wrap;gap:8px;margin:0 10px 20px}
+.new-meeting input{flex:1 1 180px;min-width:0;min-height:38px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--surface);color:var(--text);font:inherit}
+.empty .new-meeting{max-width:440px;margin:16px 0 0}
+.new-meeting .primary{height:38px;padding:0 16px;font-size:15px}
+.drawer .resume{margin:0 10px 6px;font-size:13px}
 .drawer a .id{display:inline-block;width:24px;color:var(--faint);font-family:var(--mono);font-size:13px}
 .drawer a .n{flex:none;color:var(--faint);font-size:13px}
 .mine{margin:8px 4px;padding:14px;background:var(--raised);border-radius:var(--radius-card);color:var(--muted);font-size:14px}

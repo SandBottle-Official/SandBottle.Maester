@@ -1,7 +1,7 @@
 ---
 name: council
 description: Convene Maester's Small Council — Uncle Bob, Martin Fowler and Eric Evans debate one feature while an independent Skeptic tries to break the design; the agreed spec becomes a Decision Table with Given/When/Then and is split into TDD Tasks for forge. Use when the user asks for 大師圓桌, 召開圓桌, 請三位大師一起設計, 設計後輸出 task, Small Council, or a design review that should end in TDD tasks. Not for pure concept questions, code review or debugging.
-disable-model-invocation: true
+user-invocable: false
 ---
 
 # Small Council
@@ -16,7 +16,7 @@ User-facing names (replies, council documents, stage notes): the Small Council i
 
 ## Setup
 
-The CLI is `node <plugin-root>/bin/maester.mjs`; `<plugin-root>` is two directories above this SKILL.md. Below it is written `maester`. Every record lives in the repo's `.maester/maester.db` and is written only through the CLI; commands and payloads are defined in [../chain/references/state-spec.md](../chain/references/state-spec.md). Never write markdown or json records.
+The CLI is `node <plugin-root>/bin/maester.mjs`; `<plugin-root>` is two directories above this SKILL.md. Below it is written `maester`. Every record lives in the repo's `.maester/maester.db` and is written only through the CLI; commands and payloads are defined in [../open/references/state-spec.md](../open/references/state-spec.md). Never write markdown or json records.
 
 Before Discover, read the lenses this skill relies on: [uncle-bob](references/uncle-bob.md), [fowler](references/fowler.md), [evans](references/evans.md), [decision-table](references/decision-table.md), [skeptic](references/skeptic.md).
 
@@ -59,7 +59,7 @@ DISCOVER → ROUND ⇄ CODEX_REVIEW → CANDIDATE_DESIGNS → USER_DIRECTION
 
 ## Recording on the workbench
 
-- Open with `maester open`, then `maester start` for a new feature (or `maester show` to resume one).
+- Open with `maester open`, then `maester start` for a new feature (or `maester show` to resume one). A meeting started from the page (`start_council`) already exists as the current feature: skip `start`.
 - On every state change run `maester stage` with a one-sentence `note`. When a state finishes, append a council document with `maester doc`: Discover, each Round, each Skeptic review (`kind: "codex"`), Candidate Designs, Decision Table. Documents are append-only; corrections are new documents.
 - Every question for the user (master conflicts, Open Questions, Skeptic points needing a ruling, design choice, the A/B choice after breakdown) goes through `maester ask`, all questions of one batch at once so the user answers them together on the page. Then run `maester wait` with `run_in_background`. Treat an `answer` event (already recorded by the server) or `approve_design` exactly like the user saying it in the terminal, then `maester done <event id>`. Record terminal answers with `maester answer`. Approval on the page satisfies Hard Gate 1.
 - After approval, write the Final Design Summary with `maester design`.

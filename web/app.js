@@ -72,7 +72,25 @@ async function send(type, payload) {
   const b = document.querySelector('.acts .next span'); if (b) b.textContent = why;
   return why;
 }
-const LABEL = { answer: '回答', approve_design: '設計確定', tests_ran: '跑測試', hint: '提示', help_green: '幫我寫綠燈', refactor_done: '重構好了', refactor_skip: '跳過重構', next_round: '下一輪', prompt: '你的訊息', red_written: '測試寫好了' };
+// 新建或接續會議：伺服器換好目前功能、留事件給 AI，畫面回到目前功能
+let meetingNote = '';
+async function meeting(path, body) {
+  meetingNote = '';
+  const r = await fetch(`/api/${path}?repo=${encodeURIComponent(REPO)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-maester-key': KEY }, body: JSON.stringify(body) });
+  if (r.ok) { params.delete('feature'); location.search = params.toString(); return; }
+  meetingNote = (await r.json().catch(() => ({}))).error || `失敗（${r.status}）`;
+  render();
+}
+const featureHref = f => { const p = new URLSearchParams(params); if (f.current) p.delete('feature'); else p.set('feature', f.id); return `?${p}`; };
+const newMeetingForm = () => `<form class="new-meeting" data-new-meeting><input name="name" placeholder="要討論的功能，例如：客戶訂閱" aria-label="新會議的功能名稱" required>
+  <button class="primary">新建會議</button>${meetingNote ? `<p class="note">${esc(meetingNote)}</p>` : ''}</form>`;
+function meetings(v) {
+  const list = (v.features || []).map(f => `<li><a href="${esc(featureHref(f))}" class="${f.id === v.featureId ? 'on' : ''}"><span class="nm">${esc(f.name)}</span><span class="n">${f.current ? '目前' : f.stage === 'done' ? '已完成' : ''}</span></a>
+    ${!f.current && f.stage !== 'done' ? `<button class="link resume" data-resume="${f.id}">繼續這個會議</button>` : ''}</li>`).join('');
+  return `<h2>會議</h2>${list ? `<ul>${list}</ul>` : ''}${newMeetingForm()}`;
+}
+
+const LABEL = { answer: '回答', approve_design: '設計確定', tests_ran: '跑測試', hint: '提示', help_green: '幫我寫綠燈', refactor_done: '重構好了', refactor_skip: '跳過重構', next_round: '下一輪', prompt: '你的訊息', red_written: '測試寫好了', start_council: '新建會議', resume: '繼續會議' };
 // 送出後到 AI 處理完之前按鈕都鎖住；AI 中斷時可以「解除鎖定」重按
 const inFlight = v => [...(v.processing || []), ...(v.pending || [])].filter(e => !ui.unlocked.has(e.id));
 function busy(v) {
@@ -164,6 +182,7 @@ function road(v, P) {
   }).join('');
   return `<div class="scrim" data-road-toggle></div><nav class="drawer" aria-label="臨時動議與 Task 清單">
     <p class="drawer-repo">${esc(v.name)} · <code>${esc(v.branch)}</code></p>
+    ${meetings(v)}
     ${v.roundtable.length || rtState ? `<h2>臨時動議</h2><ul>${rtItems}</ul>` : ''}
     ${P.tasks.length ? `<h2>TDD</h2><ul>${tdd}</ul>` : ''}
     ${yourWay(v)}
@@ -386,7 +405,7 @@ function render() {
   document.body.className = phase && phase !== 'green' ? `phase-${phase}` : '';
   const err = v.errors.map(e => `<p class="banner" style="margin:0 8px 8px">${esc(e)}</p>`).join('') ;
   if (!ui.mode) {
-    app.innerHTML = topBar(v, null, P) + err + `<div class="empty"><h2>還沒有進行中的計畫</h2><p>跑 <code>/maester:council</code> 或 <code>/maester:forge</code> 之後，這裡會自動出現。</p></div>`;
+    app.innerHTML = topBar(v, null, P) + err + `<div class="empty"><h2>開一場新會議</h2><p>寫下要討論的功能，AI 會召開臨時動議；過往會議在左上角的清單裡。</p>${newMeetingForm()}</div>`;
     return;
   }
   const viewing = ui.step && P.status(P.tasks.findIndex(t => +t.id === +ui.step.task), ui.step.test) === 'done';
@@ -439,6 +458,7 @@ app.addEventListener('click', e => {
   if (t.dataset.tab) { ui.tab = t.dataset.tab; return render(); }
   if ('back' in t.dataset) { Object.assign(ui, { mode: null, task: null, step: null }); return render(); }
   if (t.dataset.ev) return send(t.dataset.ev);
+  if (t.dataset.resume) return meeting('resume', { feature: +t.dataset.resume });
   if (t.dataset.redBy) {
     view.redBy = t.dataset.redBy === 'user' ? 'user' : 'ai'; redByNote = ''; render();
     fetch(`/api/red-by?repo=${encodeURIComponent(REPO)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-maester-key': KEY }, body: JSON.stringify({ value: t.dataset.redBy }) })
@@ -461,6 +481,12 @@ app.addEventListener('click', e => {
     navigator.clipboard.writeText(/** @type {HTMLElement} */ (t.closest('.code')).dataset.raw).then(() => { t.textContent = '已複製'; }, () => { t.textContent = '複製失敗'; });
     setTimeout(() => { t.textContent = '複製'; }, 1500);
   }
+});
+app.addEventListener('submit', e => {
+  const form = /** @type {HTMLFormElement} */ (e.target);
+  if (!form.matches('[data-new-meeting]')) return;
+  e.preventDefault();
+  meeting('start', { name: /** @type {HTMLInputElement} */ (form.elements.namedItem('name')).value });
 });
 app.addEventListener('change', e => {
   const target = /** @type {HTMLSelectElement} */ (e.target);
