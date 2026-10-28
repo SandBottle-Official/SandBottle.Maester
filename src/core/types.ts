@@ -127,7 +127,7 @@ export type PhaseInput = {
 // 卡住這一步、要使用者調整的事（例如回歸測試失敗）；換階段自動清掉
 export type StepProblem = { title: string; why?: string; fix?: string; output?: string };
 
-// 使用者的寫法跟 Maester 不同時的調整；council 是臨時小圓桌各大師的一句話
+// 使用者的寫法跟 Maester 不同時的調整；council 是臨時動議各大師的一句話
 export type AdaptationInput = { topic?: string; stage?: string | null; test?: number | string | null; maester?: string; user?: string; why?: string | null; council?: { who: string; text: string }[] | null };
 
 export type AdaptationOut = { id: number; topic: string; stage: string | null; feature: number | null; test: number | null; maester: string; user: string; why: string | null; council: { who: string; text: string }[] | null; createdAt: string };

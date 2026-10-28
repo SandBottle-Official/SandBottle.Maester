@@ -84,7 +84,7 @@ Document kinds for `doc`:
 
 | Command | Input | Rule |
 |---|---|---|
-| `maester adapt` | `{ "topic": "測試命名", "stage": "green", "test": 17, "maester": "what Maester wrote or prescribed", "user": "what the user wrote instead", "why": "the user's reasoning", "council": [{ "who": "Uncle Bob", "text": "…" }] }` | Per repo, kept across features; append-only, so a topic adapted again keeps its history. `topic`, `maester` and `user` are required; `council` is optional (the mini council) |
+| `maester adapt` | `{ "topic": "測試命名", "stage": "green", "test": 17, "maester": "what Maester wrote or prescribed", "user": "what the user wrote instead", "why": "the user's reasoning", "council": [{ "who": "Uncle Bob", "text": "…" }] }` | Per repo, kept across features; append-only, so a topic adapted again keeps its history. `topic`, `maester` and `user` are required; `council` is optional (the 臨時動議) |
 
 `show` prints the latest entry of each topic under 「使用者的寫法」; every later test, example and council document follows it.
 

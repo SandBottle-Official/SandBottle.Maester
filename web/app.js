@@ -166,8 +166,23 @@ function road(v, P) {
     <p class="drawer-repo">${esc(v.name)} · <code>${esc(v.branch)}</code></p>
     ${v.roundtable.length || rtState ? `<h2>Small Council</h2><ul>${rtItems}</ul>` : ''}
     ${P.tasks.length ? `<h2>TDD</h2><ul>${tdd}</ul>` : ''}
+    ${yourWay(v)}
     ${v.greens.total ? `<div class="mine"><p class="big">${v.greens.user}／${v.greens.total}</p><p>${v.greens.user === v.greens.total ? '到目前為止的綠燈，都是你親手寫的。' : `其中 ${v.greens.total - v.greens.user} 輪由 AI 代寫。`}</p></div>` : ''}
   </nav>`;
+}
+
+// 每個主題最新一筆在上面，展開看調整歷史與臨時動議
+function yourWay(v) {
+  const topics = new Map();
+  for (const a of v.adaptations || []) topics.set(a.topic, [...(topics.get(a.topic) || []), a]);
+  if (!topics.size) return '';
+  const item = a => `<p>${esc(a.user)}</p><p class="was">原本：${esc(a.maester)}</p>${a.why ? `<p class="was">因為 ${esc(a.why)}</p>` : ''}
+    ${a.council?.length ? `<p class="was">臨時動議</p>${a.council.map(c => `<div class="say"><span class="who">${esc(c.who)}</span> ${esc(c.text)}</div>`).join('')}` : ''}`;
+  return `<h2>你的寫法</h2><div class="way">${[...topics].map(([topic, list]) => {
+    const now = list.at(-1), before = list.slice(0, -1).reverse();
+    return `<details><summary><b>${esc(topic)}</b>${list.length > 1 ? `<span class="n">調整 ${list.length} 次</span>` : ''}</summary>${item(now)}
+      ${before.map(a => `<div class="earlier">${item(a)}</div>`).join('')}</details>`;
+  }).join('')}</div>`;
 }
 
 function linkState(v, P, taskIndex, testNo) {

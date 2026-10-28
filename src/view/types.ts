@@ -1,4 +1,4 @@
-import type { CodeFile, StepProblem, DecisionOut, DocOut, EventOut, FeatureSummary } from '../core/types.ts';
+import type { AdaptationOut, CodeFile, StepProblem, DecisionOut, DocOut, EventOut, FeatureSummary } from '../core/types.ts';
 import type { FeatureStage, Phase, RedBy } from '../core/vocabulary.ts';
 import type { ChangedFile, CommitView } from './git.ts';
 
@@ -58,4 +58,5 @@ export type View = {
   greens: { user: number; total: number };
   changes: ChangedFile[];
   redBy: RedBy;
+  adaptations: AdaptationOut[];
 };

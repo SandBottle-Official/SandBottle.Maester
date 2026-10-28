@@ -12,7 +12,7 @@ function adaptations(S: ReturnType<typeof scenario>): AdaptationOut[] {
 }
 
 describe('照使用者的寫法調整', () => {
-  test('記下調整_連同功能與測試與小圓桌', () => {
+  test('記下調整_連同功能與測試與臨時動議', () => {
     const S = scenario();
     const { feature, tests } = S.inTdd();
     const council = [{ who: 'Uncle Bob', text: '名稱讀起來像規格就好' }];
@@ -44,5 +44,14 @@ describe('照使用者的寫法調整', () => {
     S.start();
     S.rejected(['adapt'], { topic: '測試命名', maester: 'x' }, /需要 topic、maester/);
     S.rejected(['adapt'], { ...命名, council: [{ who: 'Fowler' }] }, /council 要是/);
+  });
+});
+
+describe('網頁上的你的寫法', () => {
+  test('view帶出全部調整', () => {
+    const S = scenario();
+    S.inTdd();
+    S.ok(['adapt'], 命名);
+    assert.deepEqual(S.view().adaptations.map((a: AdaptationOut) => a.user), [命名.user]);
   });
 });

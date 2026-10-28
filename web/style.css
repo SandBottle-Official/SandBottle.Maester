@@ -76,6 +76,12 @@ h1{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;min-wid
 .drawer a .id{display:inline-block;width:24px;color:var(--faint);font-family:var(--mono);font-size:13px}
 .drawer a .n{flex:none;color:var(--faint);font-size:13px}
 .mine{margin:8px 4px;padding:14px;background:var(--raised);border-radius:var(--radius-card);color:var(--muted);font-size:14px}
+.way{margin:0 4px 8px;font-size:14px}
+.way details{padding:10px 12px;border-radius:var(--radius-card);background:var(--raised);margin-bottom:6px}
+.way summary{display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+.way summary .n,.way .was,.way .who{color:var(--muted)}
+.way details > p:first-of-type{margin-top:8px}
+.way .earlier{margin-top:8px;padding-top:8px;border-top:1px solid var(--rule);opacity:.75}
 .mine .big{font-size:32px;color:var(--text);line-height:1.1;margin-bottom:4px}
 
 /* 中間：讀的地方 */
