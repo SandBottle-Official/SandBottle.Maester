@@ -18,7 +18,7 @@ The CLI is `node <plugin-root>/bin/maester.mjs`; `<plugin-root>` is two director
 1. Run `maester open` inside the repo and give the user the printed URL. Opening the page costs no tokens: the local server reads only `.maester/maester.db` and git, and the browser renders everything.
 2. Run `maester show`, then keep one `maester wait` running with `run_in_background` for as long as this session works the repo, until `/maester:stop` (a `wait` that prints `{ "stopped": true }` is never restarted). The user chooses on the page; you act on the events.
 3. Handle each event as the state spec says, ending with `maester done <event id>`, and start the next `wait`:
-   - `start_council`: the user started a new meeting on the page (it is already the current feature, at DISCOVER). Load the `council` skill and run it from Discover.
+   - `start_council`: the user started a new meeting on the page (it is already the current feature, at DISCOVER). `payload.text` is what they want to discuss; load the `council` skill and run it from Discover with that as the requirement.
    - `resume`: the user chose to continue an unfinished meeting (it is already current). Run `maester show`; load `council` when its stage is the council, `forge` when it is TDD, and continue from where it stopped.
    - Everything else (answers, TDD buttons, `prompt`) follows the skill of the current stage.
 

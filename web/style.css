@@ -73,10 +73,18 @@ h1{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;min-wid
 .drawer a.on{background:var(--active);color:var(--text);font-weight:500}
 .drawer a.later{opacity:.5}
 .drawer a .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.new-meeting{display:flex;flex-wrap:wrap;gap:8px;margin:0 10px 20px}
-.new-meeting input{flex:1 1 180px;min-width:0;min-height:38px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--surface);color:var(--text);font:inherit}
-.empty .new-meeting{max-width:440px;margin:16px 0 0}
-.new-meeting .primary{height:38px;padding:0 16px;font-size:15px}
+.drawer .new-meeting{display:block;width:calc(100% - 20px);height:38px;margin:0 10px 20px;font-size:15px}
+.empty .new-meeting{margin-top:16px;padding:0 22px}
+.drawer .resume-note{margin:0 10px 8px}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:22;width:min(860px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;padding:20px 22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-panel);box-shadow:0 20px 60px #0009;animation:fade .15s ease-out}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+.modal-head h2{font-size:20px}
+.modal .composer{padding-top:12px;border-top:0}
+.modal .composer .cm-editor{max-height:calc(100vh - 260px)}
+.modal .composer .cm-content,.modal .composer .cm-editor.cm-focused .cm-content{min-height:min(320px,calc(100vh - 300px))}
+.modal .composer-box textarea{min-height:min(320px,calc(100vh - 300px));max-height:none}
+.modal .composer-foot{display:flex}
+@media (prefers-reduced-motion:reduce){.modal{animation:none}}
 .drawer .resume{margin:0 10px 6px;font-size:13px}
 .drawer a .id{display:inline-block;width:24px;color:var(--faint);font-family:var(--mono);font-size:13px}
 .drawer a .n{flex:none;color:var(--faint);font-size:13px}

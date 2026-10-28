@@ -112,7 +112,7 @@ Always finish with `maester done <event id>`; until then the page shows the even
 | `refactor_done` | Run the tests; anything red → write a `problem` and stay in refactor. Otherwise commit any changes (`refactor:`), `complete` bound to HEAD, write the next red test |
 | `refactor_skip` | No commit; `complete` bound to the green commit, write the next red test |
 | `next_round` | Older button, same as `refactor_done` |
-| `start_council` | The user started a new meeting on the page; the server already created it as the current feature at DISCOVER. Run the council from Discover |
+| `start_council` | The user started a new meeting on the page; the server already created it as the current feature at DISCOVER, named after the first line of `payload.text`. `payload.text` is what the user wants to discuss: treat it as the requirement and run the council from Discover |
 | `resume` | The user chose an unfinished meeting on the page; the server already made it current. `show`, then continue its council or TDD where it stopped |
 | `prompt` | `payload.text` is a message from the page; treat it as if typed in the terminal. Not tied to a step; accepted even when the page is stale |
 

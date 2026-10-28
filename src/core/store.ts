@@ -11,6 +11,7 @@ import { dbPath, hasLegacyJson } from './paths.ts';
 import { addDoc, answer, ask, readDecisions, readDocs, setStage } from './roundtable.ts';
 import { migrateSchema, SCHEMA } from './schema.ts';
 import { completeStep, readPlan, recordPhase, startTdd, writePlan } from './tdd.ts';
+import { MAX_PROMPT_LENGTH } from './vocabulary.ts';
 import type { AdaptationInput, AnswerInput, CompleteInput, DecisionInput, DocInput, EventInput, EventRow, ImportFeatureInput, PhaseInput, PlanInput, ShaInfo, StageInput, StartFeatureInput } from './types.ts';
 
 export class Store extends Db {
@@ -27,9 +28,14 @@ export class Store extends Db {
   stoppedAt() { return stoppedAt(this); }
 
   // 網頁上的「新建會議」「繼續這個會議」：先換目前功能，再留事件給 maester wait 領
-  startFromPage(name: unknown) {
-    const { feature } = startFeature(this, { name: typeof name === 'string' ? name.trim() : undefined });
-    return { feature, ...submitEvent(this, { type: 'start_council', feature }) };
+  // 新建會議時第一行當名稱，整段文字跟著事件交給 AI 當 Discover 的需求
+  startFromPage(text: unknown) {
+    const full = typeof text === 'string' ? text.trim() : '';
+    // 先擋太長的內容，免得功能建好了事件卻寫不進去
+    if (full.length > MAX_PROMPT_LENGTH) reject(`內容超過 ${MAX_PROMPT_LENGTH} 字`);
+    const name = full.split('\n')[0].trim().slice(0, MAX_MEETING_NAME);
+    const { feature } = startFeature(this, { name });
+    return { feature, ...submitEvent(this, { type: 'start_council', feature, payload: { text: full } }) };
   }
   resumeFromPage(id: unknown) {
     const { feature } = switchFeature(this, String(id));
@@ -60,6 +66,8 @@ export class Store extends Db {
 
   importFeature(data: ImportFeatureInput) { return importFeature(this, data); }
 }
+
+const MAX_MEETING_NAME = 40;
 
 type OpenOptions = { write?: boolean; file?: string };
 

@@ -4,6 +4,8 @@ const params = new URLSearchParams(location.search);
 const KEY = params.get('key') || '';
 const REPO = params.get('repo'), FEATURE = params.get('feature');
 const composer = REPO ? createComposer({ onSubmit: text => send('prompt', { text }) }) : null;
+// 新建會議的輸入框：第一行當會議名稱，整段交給 AI 當 Discover 的需求
+const meetingComposer = REPO ? createComposer({ onSubmit: text => meeting('start', { text }), placeholder: '要討論的功能：第一行當會議名稱，下面寫需求、限制與想法…', label: '新會議要討論的功能', id: 'meeting-input' }) : null;
 const q = `key=${encodeURIComponent(KEY)}&repo=${encodeURIComponent(REPO)}${FEATURE ? `&feature=${encodeURIComponent(FEATURE)}` : ''}`;
 const app = document.getElementById('app');
 
@@ -72,23 +74,23 @@ async function send(type, payload) {
   const b = document.querySelector('.acts .next span'); if (b) b.textContent = why;
   return why;
 }
-// 新建或接續會議：伺服器換好目前功能、留事件給 AI，畫面回到目前功能
-let meetingNote = '';
+// 新建或接續會議：伺服器換好目前功能、留事件給 AI，畫面回到目前功能；失敗時回傳原因
+let resumeNote = '';
 async function meeting(path, body) {
-  meetingNote = '';
   const r = await fetch(`/api/${path}?repo=${encodeURIComponent(REPO)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-maester-key': KEY }, body: JSON.stringify(body) });
-  if (r.ok) { params.delete('feature'); location.search = params.toString(); return; }
-  meetingNote = (await r.json().catch(() => ({}))).error || `失敗（${r.status}）`;
-  render();
+  if (r.ok) { params.delete('feature'); location.search = params.toString(); return ''; }
+  return (await r.json().catch(() => ({}))).error || `失敗（${r.status}）`;
 }
 const featureHref = f => { const p = new URLSearchParams(params); if (f.current) p.delete('feature'); else p.set('feature', f.id); return `?${p}`; };
-const newMeetingForm = () => `<form class="new-meeting" data-new-meeting><input name="name" placeholder="要討論的功能，例如：客戶訂閱" aria-label="新會議的功能名稱" required>
-  <button class="primary">新建會議</button>${meetingNote ? `<p class="note">${esc(meetingNote)}</p>` : ''}</form>`;
+const newMeetingButton = () => `<button class="primary new-meeting" data-new-meeting>新建會議</button>`;
 function meetings(v) {
   const list = (v.features || []).map(f => `<li><a href="${esc(featureHref(f))}" class="${f.id === v.featureId ? 'on' : ''}"><span class="nm">${esc(f.name)}</span><span class="n">${f.current ? '目前' : f.stage === 'done' ? '已完成' : ''}</span></a>
     ${!f.current && f.stage !== 'done' ? `<button class="link resume" data-resume="${f.id}">繼續這個會議</button>` : ''}</li>`).join('');
-  return `<h2>會議</h2>${list ? `<ul>${list}</ul>` : ''}${newMeetingForm()}`;
+  return `<h2>會議</h2>${list ? `<ul>${list}</ul>` : ''}${resumeNote ? `<p class="note resume-note">${esc(resumeNote)}</p>` : ''}${newMeetingButton()}`;
 }
+const meetingModal = () => `<div class="scrim" data-close-meeting></div><div class="modal" role="dialog" aria-modal="true" aria-labelledby="meeting-title">
+  <div class="modal-head"><h2 id="meeting-title">新建會議</h2><button class="icon" data-close-meeting aria-label="關閉">✕</button></div>
+  <p class="note">寫下要討論的功能，AI 會召開臨時動議。第一行會當成會議名稱。</p><div class="modal-body"></div></div>`;
 
 const LABEL = { answer: '回答', approve_design: '設計確定', tests_ran: '跑測試', hint: '提示', help_green: '幫我寫綠燈', refactor_done: '重構好了', refactor_skip: '跳過重構', next_round: '下一輪', prompt: '你的訊息', red_written: '測試寫好了', start_council: '新建會議', resume: '繼續會議' };
 // 送出後到 AI 處理完之前按鈕都鎖住；AI 中斷時可以「解除鎖定」重按
@@ -405,7 +407,8 @@ function render() {
   document.body.className = phase && phase !== 'green' ? `phase-${phase}` : '';
   const err = v.errors.map(e => `<p class="banner" style="margin:0 8px 8px">${esc(e)}</p>`).join('') ;
   if (!ui.mode) {
-    app.innerHTML = topBar(v, null, P) + err + `<div class="empty"><h2>開一場新會議</h2><p>寫下要討論的功能，AI 會召開臨時動議；過往會議在左上角的清單裡。</p>${newMeetingForm()}</div>`;
+    queueMicrotask(placeMeetingComposer);
+    app.innerHTML = topBar(v, null, P) + err + `<div class="empty"><h2>開一場新會議</h2><p>寫下要討論的功能，AI 會召開臨時動議；過往會議在左上角的清單裡。</p>${newMeetingButton()}</div>` + (ui.meetingOpen ? meetingModal() : '');
     return;
   }
   const viewing = ui.step && P.status(P.tasks.findIndex(t => +t.id === +ui.step.task), ui.step.test) === 'done';
@@ -417,13 +420,23 @@ function render() {
   const scrolls = ctx === lastCtx ? [...app.querySelectorAll('.work .panel')].map(p => p.scrollTop) : [];
   lastCtx = ctx;
   const typing = composer?.el.contains(document.activeElement);
-  app.innerHTML = topBar(v, phase, P) + err + `<div class="work">${body}</div>` + (ui.roadOpen ? road(v, P) : '');
+  app.innerHTML = topBar(v, phase, P) + err + `<div class="work">${body}</div>` + (ui.roadOpen ? road(v, P) : '') + (ui.meetingOpen ? meetingModal() : '');
   app.querySelectorAll('.work .panel').forEach((p, i) => { if (scrolls[i]) p.scrollTop = scrolls[i]; });
   // 輸入框是同一個節點搬回來，內容與 vim 狀態都在；搬動會失焦，所以補回焦點
   if (composer && !v.readonly) { app.querySelector('.dock')?.append(composer.el); if (typing) composer.focus(); }
+  placeMeetingComposer();
   highlightAll();
 }
 let lastCtx = null;
+// 輸入框是同一個節點，每次重畫搬進 modal；剛打開時把游標放進去
+function placeMeetingComposer() {
+  const slot = app.querySelector('.modal-body');
+  if (!slot || !meetingComposer) return;
+  const typing = meetingComposer.el.contains(document.activeElement);
+  slot.append(meetingComposer.el);
+  if (typing || ui.meetingFocus) { meetingComposer.focus(); ui.meetingFocus = false; }
+}
+const openMeeting = open => { Object.assign(ui, { meetingOpen: open, meetingFocus: open, roadOpen: false }); render(); };
 /** @type {string | null | undefined} */
 let lastStep;
 const PHASE_TAB = { red: 'test', green: 'test', refactor: 'refactor' };
@@ -436,6 +449,7 @@ async function renderProjects() {
 
 app.addEventListener('click', e => {
   const target = /** @type {HTMLElement} */ (e.target);
+  if (target.matches('[data-close-meeting]')) return openMeeting(false);
   if (target.matches('.scrim')) { ui.roadOpen = false; return render(); }
   const a = /** @type {HTMLElement | null} */ (target.closest('[data-task],[data-rt],[data-step]'));
   if (a) {
@@ -458,7 +472,9 @@ app.addEventListener('click', e => {
   if (t.dataset.tab) { ui.tab = t.dataset.tab; return render(); }
   if ('back' in t.dataset) { Object.assign(ui, { mode: null, task: null, step: null }); return render(); }
   if (t.dataset.ev) return send(t.dataset.ev);
-  if (t.dataset.resume) return meeting('resume', { feature: +t.dataset.resume });
+  if (t.dataset.resume) return meeting('resume', { feature: +t.dataset.resume }).then(why => { resumeNote = why; if (why) render(); });
+  if ('newMeeting' in t.dataset) return openMeeting(true);
+  if ('closeMeeting' in t.dataset) return openMeeting(false);
   if (t.dataset.redBy) {
     view.redBy = t.dataset.redBy === 'user' ? 'user' : 'ai'; redByNote = ''; render();
     fetch(`/api/red-by?repo=${encodeURIComponent(REPO)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-maester-key': KEY }, body: JSON.stringify({ value: t.dataset.redBy }) })
@@ -482,12 +498,6 @@ app.addEventListener('click', e => {
     setTimeout(() => { t.textContent = '複製'; }, 1500);
   }
 });
-app.addEventListener('submit', e => {
-  const form = /** @type {HTMLFormElement} */ (e.target);
-  if (!form.matches('[data-new-meeting]')) return;
-  e.preventDefault();
-  meeting('start', { name: /** @type {HTMLInputElement} */ (form.elements.namedItem('name')).value });
-});
 app.addEventListener('change', e => {
   const target = /** @type {HTMLSelectElement} */ (e.target);
   if (!target.matches('[data-feature]')) return;
@@ -508,7 +518,12 @@ app.addEventListener('keydown', e => {
   const target = /** @type {HTMLElement} */ (e.target);
   if (e.key === 'Enter' && target.matches('[data-step]')) target.click();
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.roadOpen) { ui.roadOpen = false; render(); } });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  // vim 用 Esc 回一般模式，游標在輸入框裡時不關 modal
+  if (ui.meetingOpen && !meetingComposer?.el.contains(document.activeElement)) openMeeting(false);
+  else if (ui.roadOpen) { ui.roadOpen = false; render(); }
+});
 app.addEventListener('toggle', e => {
   const target = /** @type {HTMLDetailsElement} */ (e.target);
   const fold = target.dataset?.fold;

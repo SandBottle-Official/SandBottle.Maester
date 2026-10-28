@@ -31,7 +31,7 @@ export function submitEvent(db: Db, { type, payload, feature: featureId, ctx = {
     if (!feature || Number(featureId) !== feature.id) reject('這不是目前功能，只能查看');
     if (feature.stage === 'done') reject(`「${feature.name}」已完成，只能查看`);
     const step = currentStep(db, feature.id);
-    const text = type === 'prompt' ? promptText(payload) : null;
+    const text = type === 'prompt' || type === 'start_council' ? promptText(payload) : null;
     if (!CONTEXT_FREE.has(type)) rejectStaleContext(feature, step, ctx);
 
     const id = newEventId();
@@ -49,7 +49,7 @@ export function submitEvent(db: Db, { type, payload, feature: featureId, ctx = {
 function toEventOut(db: Db, event: EventRow): EventOut {
   const answers = () => db.all<{ decision: string; value: string; free: number }>('SELECT decision, value, free FROM event_answers WHERE event_id = ? ORDER BY ord', event.id)
     .map((a): Answer => ({ decision: a.decision, value: a.value, ...(a.free ? { free: true } : {}) }));
-  const payload = event.type === 'answer' ? { answers: answers() } : event.type === 'prompt' ? { text: event.text } : null;
+  const payload = event.type === 'answer' ? { answers: answers() } : event.type === 'prompt' || event.type === 'start_council' ? { text: event.text } : null;
   return { id: event.id, ts: event.ts, type: event.type, status: event.status, feature: event.feature_id, payload,
     ctx: { stage: event.ctx_stage, test: event.ctx_test_id, phase: event.ctx_phase } };
 }

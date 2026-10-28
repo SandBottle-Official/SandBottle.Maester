@@ -25,10 +25,19 @@ describe('網頁上的會議', () => {
     assert.deepEqual(pendingTypes(S), ['start_council']);
   });
 
+  test('第一行當會議名稱_整段文字交給AI', () => {
+    const S = scenario();
+    emptyDb(S);
+    const text = `${Fixtures.客戶訂閱}\n試用只能領一次，正式訂閱的客戶不能再領`;
+    onStore(S, db => db.startFromPage(text));
+    assert.equal(S.view().state.feature, Fixtures.客戶訂閱);
+    assert.deepEqual(S.view().pending.map((e: any) => e.payload), [{ text }]);
+  });
+
   test('沒有名稱_拒絕', () => {
     const S = scenario();
     S.start();
-    assert.throws(() => onStore(S, db => db.startFromPage('  ')), /需要功能名稱/);
+    assert.throws(() => onStore(S, db => db.startFromPage('  ')), /訊息是空的|需要功能名稱/);
   });
 
   test('繼續未完成的會議_換成目前功能並留下resume', () => {
