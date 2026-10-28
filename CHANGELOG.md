@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 — 2026-10-28
+
+### Features
+
+- Two commands instead of three: `/maester:open` opens the workbench, where you pick a past meeting or start a new one, and the AI runs the council or TDD as the meeting needs; `/maester:stop` stops every Maester listener in the repo. `/maester:council`, `/maester:forge` and `/maester:chain` are gone from the command menu (the AI still uses council and forge on its own).
+- The workbench home and drawer list every meeting: open one to read it, 「繼續這個會議」 to pick an unfinished one back up, or start a new meeting by naming the feature.
+- Clicking a council stage in the drawer shows only that stage's record instead of one long scroll; the final design now shows on 「你同意設計」 and 「拆 Task」.
+- New names on the page and in replies: the Small Council is 「臨時動議」, a Round is 「圓桌會議」, a Skeptic review is 「對抗式審查」.
+
 ## 1.4.0 — 2026-10-28
 
 ### Features
