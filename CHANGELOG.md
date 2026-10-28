@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1 — 2026-10-28
+
+### Fixes
+
+- 「新建會議」opens a large centered editor instead of a small field in the drawer: the same editor as the message box, Vim included. The first line names the meeting and the whole text goes to the AI as the requirement for Discover.
+- `:w` in Vim sends only the editor you are typing in, now that the page has two.
+
 ## 1.5.0 — 2026-10-28
 
 ### Features
