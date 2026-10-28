@@ -12,6 +12,8 @@ The council exists to **force every assumption, invariant, data authority, depen
 
 Respond, write council documents, ask questions and write plan/phase content in Traditional Chinese (zh-TW) unless the user explicitly asks for another language. Keep code identifiers and established technical terms in their original form.
 
+User-facing names (replies, council documents, stage notes): the Small Council is 「臨時動議」, a Round is 「圓桌會議」, a Skeptic review is 「對抗式審查」 (the final one 「最終對抗式審查」).
+
 ## Setup
 
 The CLI is `node <plugin-root>/bin/maester.mjs`; `<plugin-root>` is two directories above this SKILL.md. Below it is written `maester`. Every record lives in the repo's `.maester/maester.db` and is written only through the CLI; commands and payloads are defined in [../chain/references/state-spec.md](../chain/references/state-spec.md). Never write markdown or json records.

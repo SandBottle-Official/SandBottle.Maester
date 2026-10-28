@@ -11,14 +11,14 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const pad = n => String(n).padStart(2, '0');
 const keyOf = (task, test) => `${pad(+task)}-${pad(+test)}`;
 const LAYER = { 'use case': 'uc', 契約: 'ct', contract: 'ct', 整合: 'ct' };
-const RT_STAGES = [['DISCOVER', '探索'], ['ROUND', '議事 Round'], ['CODEX_REVIEW', 'Skeptic 審查'], ['CANDIDATE_DESIGNS', '候選方案'], ['USER_DIRECTION', '你選方案'],
-  ['DECISION_TABLE', 'Decision Table'], ['OPEN_QUESTIONS', 'Open Questions'], ['FINAL_CODEX_REVIEW', 'Skeptic 最終審查'], ['USER_APPROVAL', '你同意設計'], ['TASK_BREAKDOWN', '拆 Task']];
+const RT_STAGES = [['DISCOVER', '探索'], ['ROUND', '圓桌會議'], ['CODEX_REVIEW', '對抗式審查'], ['CANDIDATE_DESIGNS', '候選方案'], ['USER_DIRECTION', '你選方案'],
+  ['DECISION_TABLE', 'Decision Table'], ['OPEN_QUESTIONS', 'Open Questions'], ['FINAL_CODEX_REVIEW', '最終對抗式審查'], ['USER_APPROVAL', '你同意設計'], ['TASK_BREAKDOWN', '拆 Task']];
 
 /** @type {View | null} */
 let view = null;
 let connected = false;
-// 使用者在看哪裡：mode 'tdd' | 'rt'；task 是畫布上的 Task；step 是右側的測試（null 表示目前這一步）
-const ui = { mode: null, task: null, step: null, tab: 'test', draft: {}, unlocked: new Set(), folds: {} };
+// 使用者在看哪裡：mode 'tdd' | 'rt'；rt 是畫布上的圓桌階段（null 表示目前階段）；task 是畫布上的 Task；step 是右側的測試（null 表示目前這一步）
+const ui = { mode: null, task: null, step: null, rt: null, tab: 'test', draft: {}, unlocked: new Set(), folds: {} };
 ui.roadOpen = false; // draft：還沒送出的裁決 { 題目 id: { value, free } }；roadOpen：左側抽屜
 
 /* ---------- theme ---------- */
@@ -111,7 +111,7 @@ function topBar(v, phase, P) {
   const title = v.state?.feature || v.plan?.feature || v.name;
   const task = P?.tasks[P.ti], doneN = task ? task.tests.filter((_, j) => P.status(P.ti, j + 1) === 'done').length : 0;
   return `<header class="top">
-    <button class="icon" data-road-toggle aria-label="${ui.roadOpen ? '關閉清單' : '打開清單'}" aria-expanded="${ui.roadOpen}" title="圓桌與 Task 清單"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg></button>
+    <button class="icon" data-road-toggle aria-label="${ui.roadOpen ? '關閉清單' : '打開清單'}" aria-expanded="${ui.roadOpen}" title="臨時動議與 Task 清單"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg></button>
     <span class="mark"><img src="brand/mark-${dark ? 'dark' : 'light'}.svg" width="22" height="22" alt="">Maester</span>
     <h1 title="${esc(title)}">${esc(title)}</h1>
     ${v.features?.length > 1 ? `<select class="btn" data-feature aria-label="切換功能">${v.features.map(f => `<option value="${f.id}" ${f.id === v.featureId ? 'selected' : ''}>${esc(f.name)}${f.current ? '（目前）' : f.stage === 'done' ? '（已完成）' : ''}</option>`).join('')}</select>` : ''}
@@ -155,16 +155,16 @@ function road(v, P) {
   const rtState = v.state?.roundtable?.state, rtIdx = RT_STAGES.findIndex(([k]) => k === rtState);
   const rtOver = v.state?.stage === 'tdd';
   const rtItems = RT_STAGES.map(([k, n], i) => {
-    const done = rtOver || i < rtIdx, on = ui.mode === 'rt' && k === rtState;
+    const done = rtOver || i < rtIdx, on = ui.mode === 'rt' && k === (ui.rt ?? rtState);
     return `<li><a href="#" data-rt="${k}" class="${on ? 'on' : ''}${!done && i !== rtIdx ? ' later' : ''}"><span class="nm">${n}</span><span class="n">${done ? '完成' : i === rtIdx ? '進行中' : ''}</span></a></li>`;
   }).join('');
   const tdd = P.tasks.map((t, i) => {
     const done = t.tests.filter((_, j) => P.status(i, j + 1) === 'done').length;
     return `<li><a href="#" data-task="${esc(t.id)}" class="${ui.mode === 'tdd' && +t.id === +ui.task ? 'on' : ''}" title="${esc(t.title)}"><span class="nm"><span class="id">${esc(t.id)}</span>${esc(t.title)}</span><span class="n">${done}／${t.tests.length}</span></a></li>`;
   }).join('');
-  return `<div class="scrim" data-road-toggle></div><nav class="drawer" aria-label="圓桌與 Task 清單">
+  return `<div class="scrim" data-road-toggle></div><nav class="drawer" aria-label="臨時動議與 Task 清單">
     <p class="drawer-repo">${esc(v.name)} · <code>${esc(v.branch)}</code></p>
-    ${v.roundtable.length || rtState ? `<h2>Small Council</h2><ul>${rtItems}</ul>` : ''}
+    ${v.roundtable.length || rtState ? `<h2>臨時動議</h2><ul>${rtItems}</ul>` : ''}
     ${P.tasks.length ? `<h2>TDD</h2><ul>${tdd}</ul>` : ''}
     ${yourWay(v)}
     ${v.greens.total ? `<div class="mine"><p class="big">${v.greens.user}／${v.greens.total}</p><p>${v.greens.user === v.greens.total ? '到目前為止的綠燈，都是你親手寫的。' : `其中 ${v.greens.total - v.greens.user} 輪由 AI 代寫。`}</p></div>` : ''}
@@ -324,31 +324,43 @@ function tddStep(v, P) {
   </aside>${dock(v, acts, note)}`;
 }
 
+const dtTable = dt => `<div style="overflow-x:auto"><table class="dt"><tr><th>Rule</th>${(dt.conditions || []).map(c => `<th>${esc(c)}</th>`).join('')}<th>結果</th></tr>
+  ${(dt.rules || []).map(r => `<tr><td>${esc(r.id)}</td>${(r.values || []).map(x => `<td>${esc(x)}</td>`).join('')}<td>${esc(r.action)}</td></tr>`).join('')}</table></div>`;
+const rtNode = (title, body, tile = '') => `<div class="node"><div class="head">${tile}<span class="t">${title}</span></div>${body}</div>`;
+const RT_DOC = {
+  discover: f => rtNode('探索', `<div style="white-space:pre-wrap">${esc(f.summary)}</div>`),
+  round: f => rtNode(`圓桌會議 ${esc(f.n)}`, (f.items || []).map(i => `<div class="say"><span class="who">${esc(i.who)}</span><div>${esc(i.text)}</div></div>`).join('')),
+  codex: f => rtNode(`對抗式審查 ${esc(f.n ?? '')}`, (f.points || []).map((p, i) => `<div class="say"><div><b>第 ${i + 1} 點</b>　${esc(p.text)}</div>${p.why ? `<div class="who">${esc(p.why)}</div>` : ''}<div>${(p.responses || []).map(r => `<span class="verdict ${esc(r.verdict)}">${esc(r.who)}：${esc({ accept: '接受', reject: '駁回', ask: '問你' }[r.verdict] || r.verdict)}</span>`).join('')}</div></div>`).join(''), '<span class="tile ct">Skeptic</span>'),
+  candidates: f => rtNode('候選方案', (f.items || []).map(c => `<div class="say"><b>${esc(c.name)}</b>${c.chosen ? ' <span class="verdict accept">你選的</span>' : ''}<div class="who">${esc(c.summary)}</div></div>`).join('')),
+  decisionTable: f => rtNode('Decision Table', dtTable(f)),
+  design: f => rtNode('最終設計', `${f.summary ? `<div style="white-space:pre-wrap">${esc(f.summary)}</div>` : ''}${(f.decisions || []).map(d => `<div class="say"><b>${esc(d.topic)}</b><div>${esc(d.decision)}</div>${d.reason ? `<div class="who">${esc(d.reason)}</div>` : ''}</div>`).join('')}`),
+};
+// 每個階段對應的文件；兩次對抗式審查靠 Decision Table 前後分開
+const RT_DOCS = {
+  DISCOVER: ['discover'], ROUND: ['round'], CODEX_REVIEW: ['codex', 'before'], CANDIDATE_DESIGNS: ['candidates'], USER_DIRECTION: ['candidates'],
+  DECISION_TABLE: ['decisionTable'], OPEN_QUESTIONS: ['decisionTable'], FINAL_CODEX_REVIEW: ['codex', 'after'], USER_APPROVAL: ['design'], TASK_BREAKDOWN: ['design'],
+};
 function rtCanvas(v) {
-  const nodes = v.roundtable.filter(f => f.kind !== 'decisionTable').map(f => {
-    if (f.kind === 'discover') return `<div class="node" id="rt-discover"><div class="head"><span class="t">探索</span></div><div style="white-space:pre-wrap">${esc(f.summary)}</div></div>`;
-    if (f.kind === 'round') return `<div class="node" id="rt-round"><div class="head"><span class="t">Round ${esc(f.n)}</span></div>${(f.items || []).map(i => `<div class="say"><span class="who">${esc(i.who)}</span><div>${esc(i.text)}</div></div>`).join('')}</div>`;
-    if (f.kind === 'codex') return `<div class="node" id="rt-codex"><div class="head"><span class="tile ct">Skeptic</span><span class="t">對抗式審查 ${esc(f.n ?? '')}</span></div>${(f.points || []).map((p, i) => `<div class="say"><div><b>第 ${i + 1} 點</b>　${esc(p.text)}</div>${p.why ? `<div class="who">${esc(p.why)}</div>` : ''}<div>${(p.responses || []).map(r => `<span class="verdict ${esc(r.verdict)}">${esc(r.who)}：${esc({ accept: '接受', reject: '駁回', ask: '問你' }[r.verdict] || r.verdict)}</span>`).join('')}</div></div>`).join('')}</div>`;
-    if (f.kind === 'candidates') return `<div class="node" id="rt-candidates"><div class="head"><span class="t">候選方案</span></div>${(f.items || []).map(c => `<div class="say"><b>${esc(c.name)}</b>${c.chosen ? ' <span class="verdict accept">你選的</span>' : ''}<div class="who">${esc(c.summary)}</div></div>`).join('')}</div>`;
-    return '';
-  }).join('');
-  return `<main class="panel canvas"><div class="spine">${nodes || '<p class="empty">圓桌還沒有內容。</p>'}</div></main>`;
+  const stage = ui.rt ?? v.state?.roundtable?.state ?? 'DISCOVER', [kind, side] = RT_DOCS[stage] || [];
+  const firstDt = v.roundtable.findIndex(f => f.kind === 'decisionTable');
+  const docs = v.roundtable.filter((f, i) => f.kind === kind && (!side || firstDt < 0 ? side !== 'after' : side === 'before' ? i < firstDt : i > firstDt));
+  const name = RT_STAGES.find(([k]) => k === stage)?.[1] || '臨時動議';
+  return `<main class="panel canvas"><div class="spine"><p class="where">${esc(name)}</p>${docs.map(f => RT_DOC[f.kind](f)).join('') || '<p class="empty">這個階段還沒有文字紀錄。</p>'}</div></main>`;
 }
 
 function rtStep(v) {
   const rt = v.state?.roundtable || {}, lock = busy(v), decisions = rt.decisions || [];
   const open = decisions.filter(d => d.answer == null), answered = decisions.filter(d => d.answer != null);
   const dt = latest(v, 'decisionTable'), live = v.state?.stage === 'roundtable';
-  const stage = RT_STAGES.find(([k]) => k === rt.state)?.[1] || '圓桌';
+  const stage = RT_STAGES.find(([k]) => k === rt.state)?.[1] || '臨時動議';
   return `<aside class="panel step">${busyBar(v)}
-    <section class="head"><p class="where">Small Council${rt.scale ? ` · ${esc(rt.scale)}` : ''}${live ? '' : ' · 已完成'}</p><h2>${esc(live ? stage : '圓桌紀錄')}</h2>${live && rt.note ? `<p class="lede">${esc(rt.note)}</p>` : ''}</section>
+    <section class="head"><p class="where">臨時動議${rt.scale ? ` · ${esc(rt.scale)}` : ''}${live ? '' : ' · 已完成'}</p><h2>${esc(live ? stage : '臨時動議紀錄')}</h2>${live && rt.note ? `<p class="lede">${esc(rt.note)}</p>` : ''}</section>
     ${live && open.length ? `<section><h3>等你裁決</h3>${open.map(d => `<div class="decision"><p class="q">${esc(d.question)}</p>
       <div class="opts">${(d.options || []).map(o => `<button class="opt${!ui.draft[d.id]?.free && ui.draft[d.id]?.value === o.label ? ' on' : ''}" data-answer="${esc(d.id)}" data-value="${esc(o.label)}" ${lock ? 'disabled' : ''}>${esc(o.label)}${o.by ? `<span class="who">${esc(o.by)}</span>` : ''}</button>`).join('')}</div>
       ${d.freeText !== false ? `<textarea data-free="${esc(d.id)}" placeholder="或寫下你的想法…" ${lock ? 'disabled' : ''}>${esc(ui.draft[d.id]?.free ? ui.draft[d.id].value : '')}</textarea>` : ''}
     </div>`).join('')}${(() => { const n = open.filter(d => ui.draft[d.id]).length; return `<button class="primary" style="margin-top:12px;width:100%" data-send-all ${lock || !n ? 'disabled' : ''}>送出裁決（${n}／${open.length}）</button>`; })()}</section>` : ''}
     ${answered.length ? `<section><h3>你的裁決</h3>${answered.map(d => `<div class="decision"><p class="q" style="font-size:16px">${esc(d.question)}</p><p>${esc(d.answer)}</p></div>`).join('')}</section>` : ''}
-    ${dt ? `<section id="rt-decisionTable"><h3>Decision Table</h3><div style="overflow-x:auto"><table class="dt"><tr><th>Rule</th>${(dt.conditions || []).map(c => `<th>${esc(c)}</th>`).join('')}<th>結果</th></tr>
-      ${(dt.rules || []).map(r => `<tr><td>${esc(r.id)}</td>${(r.values || []).map(x => `<td>${esc(x)}</td>`).join('')}<td>${esc(r.action)}</td></tr>`).join('')}</table></div></section>` : ''}
+    ${dt ? `<section><h3>Decision Table</h3>${dtTable(dt)}</section>` : ''}
   </aside>${dock(v, live && rt.state === 'USER_APPROVAL' ? `<button class="primary" data-ev="approve_design" ${lock ? 'disabled' : ''}>設計確定，開始拆 Task</button>` : live ? '' : '<button class="second" data-back>回到目前這一步</button>',
     live ? lock || (open.length ? '' : '議會正在討論') : '')}`;
 }
@@ -363,7 +375,7 @@ function render() {
   // 進到新的一步、新的階段或出了要調整的事時，畫面跳回目前這一步；分頁跟著切：紅、綠看測試，重構看重構方向
   const stepKey = `${v.featureId}|${v.state?.stage}|${v.state?.roundtable?.state}|${P.cur ? `${P.cur.testId}:${P.cur.phase}:${P.cur.problem?.title ?? ''}` : ''}`;
   if (stepKey !== lastStep) {
-    if (lastStep !== undefined) Object.assign(ui, { mode: null, task: null, step: null });
+    if (lastStep !== undefined) Object.assign(ui, { mode: null, task: null, step: null, rt: null });
     ui.tab = PHASE_TAB[P.cur?.phase] || 'test';
     lastStep = stepKey;
   }
@@ -382,7 +394,7 @@ function render() {
   const body = ui.mode === 'rt' ? rtCanvas(v) + side(rtStep(v))
     : tddCanvas(v, P) + side(viewing ? historyStep(v, P, ui.step.task, ui.step.test) : tddStep(v, P));
   // 同一個畫面重畫（選裁決、切換範例分頁、SSE 更新）時保留各 panel 的捲動位置，換畫面才回到頂端
-  const ctx = `${ui.mode}|${ui.task}|${ui.step?.task}:${ui.step?.test}`;
+  const ctx = `${ui.mode}|${ui.rt}|${ui.task}|${ui.step?.task}:${ui.step?.test}`;
   const scrolls = ctx === lastCtx ? [...app.querySelectorAll('.work .panel')].map(p => p.scrollTop) : [];
   lastCtx = ctx;
   const typing = composer?.el.contains(document.activeElement);
@@ -403,7 +415,6 @@ async function renderProjects() {
     ${list.length ? list.map(p => `<a href="/?key=${encodeURIComponent(KEY)}&repo=${encodeURIComponent(p.repo)}"><span>${esc(p.name)}</span><span class="note">${esc(p.repo)}</span></a>`).join('') : '<p class="note">還沒有專案。在 repo 裡執行 maester open。</p>'}</div>`;
 }
 
-const RT_ANCHOR = { DISCOVER: 'discover', ROUND: 'round', CODEX_REVIEW: 'codex', FINAL_CODEX_REVIEW: 'codex', CANDIDATE_DESIGNS: 'candidates', USER_DIRECTION: 'candidates', DECISION_TABLE: 'decisionTable', OPEN_QUESTIONS: 'decisionTable' };
 app.addEventListener('click', e => {
   const target = /** @type {HTMLElement} */ (e.target);
   if (target.matches('.scrim')) { ui.roadOpen = false; return render(); }
@@ -412,7 +423,7 @@ app.addEventListener('click', e => {
     e.preventDefault();
     if (a.closest('.drawer')) ui.roadOpen = false;
     if (a.dataset.task) Object.assign(ui, { mode: 'tdd', task: a.dataset.task, step: null });
-    if (a.dataset.rt) { ui.mode = 'rt'; render(); document.getElementById(`rt-${RT_ANCHOR[a.dataset.rt]}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+    if (a.dataset.rt) Object.assign(ui, { mode: 'rt', rt: a.dataset.rt });
     if (a.dataset.step) {
       const [task, test] = a.dataset.step.split(':'), cur = view.state?.tdd;
       ui.step = cur && +cur.task === +task && +cur.test === +test ? null : { task, test: +test };

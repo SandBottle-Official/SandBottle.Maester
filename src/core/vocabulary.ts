@@ -14,7 +14,7 @@ export const PHASE_LINE: Record<Phase, string> = { red: '🔴 紅：AI 寫測試
 export const RED_BY = ['ai', 'user'] as const;
 export type RedBy = typeof RED_BY[number];
 export const phaseLine = (phase: Phase, redBy: RedBy) => phase === 'red' && redBy === 'user' ? '🔴 紅：等使用者寫測試' : PHASE_LINE[phase];
-export const STAGE_LABEL: Record<FeatureStage, string> = { roundtable: '圓桌', tdd: 'TDD', done: '已完成' };
+export const STAGE_LABEL: Record<FeatureStage, string> = { roundtable: '臨時動議', tdd: 'TDD', done: '已完成' };
 
 export const MAX_PROMPT_LENGTH = 8000;
 

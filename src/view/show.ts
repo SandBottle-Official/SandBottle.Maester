@@ -18,7 +18,7 @@ function decisionLines(store: Store, feature: FeatureRow) {
 function latestDocLines(store: Store, feature: FeatureRow) {
   const latestByKind = new Map(store.docs(feature.id).map(d => [d.kind, d]));
   if (!latestByKind.size) return [];
-  return ['', '## 各種類最新的圓桌文件', ...[...latestByKind.values()].map(({ file, ...doc }) => `- ${file}：${JSON.stringify(doc)}`)];
+  return ['', '## 各種類最新的臨時動議文件', ...[...latestByKind.values()].map(({ file, ...doc }) => `- ${file}：${JSON.stringify(doc)}`)];
 }
 
 function testLine(test: PlannedTestOut, redBy: RedBy) {
@@ -71,7 +71,7 @@ export function showText(repo: string): string {
       `# 功能 ${feature.id}：${feature.name}（${STAGE_LABEL[feature.stage]}）`,
       ...otherFeaturesLine(store),
       ...adaptationLines(store),
-      '', `## 圓桌：${feature.rt_state ?? '—'}${feature.scale ? ` · ${feature.scale}` : ''}`, feature.rt_note ?? '',
+      '', `## 臨時動議：${feature.rt_state ?? '—'}${feature.scale ? ` · ${feature.scale}` : ''}`, feature.rt_note ?? '',
       ...decisionLines(store, feature),
       ...latestDocLines(store, feature),
       ...planLines(store, feature),

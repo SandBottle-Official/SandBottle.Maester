@@ -18,7 +18,7 @@ describe('進度與接手', () => {
     const S = scenario();
     S.start(Fixtures.門市權限);
     S.ok(['stage'], { state: 'OPEN_QUESTIONS' });
-    assert.equal(S.ok(['progress']), `${Fixtures.門市權限} · 圓桌 · OPEN_QUESTIONS`);
+    assert.equal(S.ok(['progress']), `${Fixtures.門市權限} · 臨時動議 · OPEN_QUESTIONS`);
   });
 
   test('R41 沒有功能或已完成_不印', () => {
