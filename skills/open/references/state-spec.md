@@ -116,6 +116,10 @@ Always finish with `maester done <event id>`; until then the page shows the even
 | `resume` | The user chose an unfinished meeting on the page; the server already made it current. `show`, then continue its council or TDD where it stopped |
 | `prompt` | `payload.text` is a message from the page; treat it as if typed in the terminal. Not tied to a step; accepted even when the page is stale |
 
+`tests_ran`, `refactor_done`, `red_written` and `help_green` may carry `"payload": { "scope": "test" | "task" | "all" }`, the test scope picked on the page: only the current test, the tests of the current Task, or the whole suite (missing means `all`). Run that scope; commits and `complete` require that scope to be green.
+
+`maester ask` works in every stage; open questions show on the page during TDD too, and their `answer` event carries the context of the current step.
+
 From sending an event until the AI marks it done, the page locks its buttons and shows a working indicator; if the AI was interrupted the user can press 「解除鎖定」. So every event, `prompt` included, must end with `done`.
 
 To wait for the user, run `maester wait` with `run_in_background: true` and the longest timeout the harness allows (Claude Code: 7200000 ms); waiting costs no tokens. A Claude Code session the user works in locally (terminal, desktop app, IDE) has no time limit on background commands; only unattended sessions (`-p`, Agent SDK, CI, cloud) stop them, and `BASH_MAX_TIMEOUT_MS` raises that limit. A `wait` stopped at its time limit has claimed nothing, so when it is stopped while the feature is not done, start it again. When a new session process starts (SessionStart `startup`, `resume` or `clear`, not `compact`), the hook returns events left processing by the previous session to pending, and prints the unfinished events so the new session starts a `wait` and picks them up. Two sessions working one repo at the same time is not supported: a second session starting would hand the first one's event out again. If the user answers in the terminal instead, handle it as usual and stop the background task.

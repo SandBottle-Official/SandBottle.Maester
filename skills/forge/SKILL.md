@@ -58,7 +58,15 @@ Report only: that business sentence, the test name, why it is red, or the files 
 
 Maester's rules and examples are a starting point, not a cage. When the user's code or words differ from what Maester wrote or prescribed (a green written another way, a refactor that went elsewhere, their own red test's style, naming, structure, test layout, terms in the council), and the tests are green, **adopt the user's way**: do not ask them to redo it, and write every later test, example and document the same way. Record it at once with `maester adapt` (`topic`, what Maester did, what the user did, and `why`: the reasoning behind it, in the user's words when they gave it, otherwise your reading of it marked as a guess). A topic that changes again gets a new `adapt`; never rewrite history. Only a Hard Gate (an invented business rule, a broken test, an unapproved design) is raised instead of adopted.
 
-When the user asks for an adjustment from the page (a `prompt` event) or the terminal that changes how Maester works, and it is more than a one-off wording fix, raise a **臨時動議** (an impromptu motion) first: Uncle Bob, Fowler and Evans each give one sentence on it and the Skeptic one counterexample; the user decides; then `maester adapt` with those sentences in `council`. Keep it to one short reply; it is not a full Round and records no council document.
+When the user asks for an adjustment from the page (a `prompt` event) or the terminal that changes how Maester works, and it is more than a one-off wording fix, raise a **臨時動議** (an impromptu motion) first: Uncle Bob, Fowler and Evans each give one sentence on it and the Skeptic one counterexample; put the choice on the page with `maester ask` (each master's proposal as an option, `by` naming them, free text allowed) and wait for the `answer` event or a terminal answer; then `maester adapt` with those sentences in `council`. Keep it to one short reply; it is not a full Round and records no council document.
+
+## Choices go on the page
+
+Whenever the user has to choose between options (a 臨時動議, two ways to fix a problem, whether to split a test), ask with `maester ask` so they can pick on the page, not only in the reply. The workbench shows open questions at the top of the step panel in every phase.
+
+## Which tests to run
+
+Events that ask you to run tests (`tests_ran`, `refactor_done`, `red_written`, `help_green`) may carry `payload.scope`, chosen on the page: `test` runs only the current test, `task` the tests of the current Task, `all` (or missing) the whole suite. Run exactly that scope with the project's test filter; the 「全部綠」 conditions for commits and `complete` then mean that scope is green. Say which scope you ran in the reply.
 
 ## Progress on the workbench
 
@@ -69,7 +77,7 @@ When the user says 「開始 Task N」「繼續」 or a new conversation resumes
 Record every phase change immediately with `maester phase` (with the current test id), without waiting for a commit:
 
 - After running red: `phase: green` in the same call (red→green at once; never stop at red, the page has no step for it) with the business sentence, test code (only `{ "file", "lines" }` covering the new test; `maester` reads it from disk), failure output (just the lines that show why it is red), green example and the Rule it covers.
-- Entering refactor: `phase: refactor` with the refactoring direction in `refactor` (「產品碼」 and 「測試碼」 as separate paragraphs, blank line between) and the example code in `refactorExample`, one entry per file.
+- Entering refactor: `phase: refactor` with the refactoring direction in `refactor` and the example code in `refactorExample`, one entry per file. Write `refactor` as two parts, each starting with its label on its own paragraph (`產品碼：` and `測試碼：`, blank line between), the conclusion in one sentence, then one `- ` line per change or checked item; never one long paragraph.
 - Giving a hint: same phase, write `hint`.
 - Tests not green after the user's turn (still red, or a regression in an earlier test): same phase, write `problem` with the cause, how to fix it and the failing output, so the page shows it prominently. Never report it only in the reply.
 - Optionally a `lesson` for the framework syntax this step introduces; its `analog` is a comparison in a language the user already knows, naming that language inside the text (for example `C#：[HttpPost]`).

@@ -17,5 +17,8 @@ export const phaseLine = (phase: Phase, redBy: RedBy) => phase === 'red' && redB
 export const STAGE_LABEL: Record<FeatureStage, string> = { roundtable: '臨時動議', tdd: 'TDD', done: '已完成' };
 
 export const MAX_PROMPT_LENGTH = 8000;
+// 網頁按「跑測試」時選的範圍：這一個測試、這個 Task、全部
+export const TEST_SCOPES = ['test', 'task', 'all'] as const;
+export type TestScope = typeof TEST_SCOPES[number];
 
 export const isOneOf = <T extends string>(values: readonly T[], value: unknown): value is T => values.includes(value as T);

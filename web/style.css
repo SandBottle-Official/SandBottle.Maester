@@ -238,6 +238,16 @@ pre .k{color:var(--tk-k)} pre .ty{color:var(--tk-ty)} pre .f{color:var(--tk-f)} 
 .node .who{color:var(--faint);font-size:14px}
 .verdict{display:inline-block;font-size:13px;padding:0 6px;border-radius:4px;background:var(--active);color:var(--muted);margin-right:6px}
 .verdict.accept{color:var(--green)} .verdict.reject{color:var(--red)} .verdict.ask{color:var(--phase-ink)}
+.refactor-block{padding:16px 18px;margin-top:12px;border-radius:var(--radius-card);background:var(--raised);border-left:3px solid var(--phase);line-height:1.75}
+.refactor-block h4{font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--phase-ink);margin-bottom:8px}
+.refactor-block p + p,.refactor-block ul + p,.refactor-block p + ul{margin-top:10px}
+.refactor-block ul{padding-left:20px}
+.refactor-block li + li{margin-top:6px}
+.scope{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--faint)}
+.scope span{margin-right:auto}
+.scope button{height:28px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-control);background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.scope button[aria-checked="true"]{background:var(--active);color:var(--text);border-color:var(--active)}
+.scope button:disabled{opacity:.5;cursor:not-allowed}
 .decision{padding:16px;border-radius:var(--radius-card);background:var(--raised);margin-top:12px}
 .decision .q{font-size:18px;font-weight:600;margin-bottom:10px}
 .opts{display:grid;gap:8px}

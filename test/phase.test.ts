@@ -82,7 +82,7 @@ describe('換階段', () => {
     const S = scenario();
     S.inTdd();
     const db = S.db();
-    db.connection.exec('ALTER TABLE steps DROP COLUMN lesson; ALTER TABLE steps DROP COLUMN test_files; ALTER TABLE steps DROP COLUMN green_files; ALTER TABLE events DROP COLUMN text; ALTER TABLE steps DROP COLUMN refactor_files; ALTER TABLE steps DROP COLUMN problem; DROP TABLE adaptations; PRAGMA user_version = 1;');
+    db.connection.exec('ALTER TABLE steps DROP COLUMN lesson; ALTER TABLE steps DROP COLUMN test_files; ALTER TABLE steps DROP COLUMN green_files; ALTER TABLE events DROP COLUMN text; ALTER TABLE steps DROP COLUMN refactor_files; ALTER TABLE steps DROP COLUMN problem; DROP TABLE adaptations; ALTER TABLE events DROP COLUMN scope; PRAGMA user_version = 1;');
     db.close();
     const again = S.db();
     try {

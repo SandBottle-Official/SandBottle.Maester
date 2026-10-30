@@ -63,6 +63,7 @@ export type EventRow = {
   ctx_test_id: number | null;
   ctx_phase: string | null;
   text: string | null;
+  scope: string | null;
 };
 
 export type CodeFile = { file?: string | null; lang?: string | null; code?: string | null; added?: number[] };
@@ -140,7 +141,7 @@ export type EventContext = { stage?: string; test?: number | string | null; phas
 
 export type Answer = { decision: string; value: string; free?: boolean };
 
-export type EventInput = { type?: string; payload?: { text?: unknown; answers?: Answer[] } | null; feature?: number | string | null; ctx?: EventContext };
+export type EventInput = { type?: string; payload?: { text?: unknown; answers?: Answer[]; scope?: unknown } | null; feature?: number | string | null; ctx?: EventContext };
 
 export type EventOut = {
   id: string;
@@ -148,7 +149,7 @@ export type EventOut = {
   type: EventType;
   status: EventRow['status'];
   feature: number;
-  payload: { answers: Answer[] } | { text: string | null } | null;
+  payload: { answers: Answer[] } | { text: string | null } | { scope: string } | null;
   ctx: { stage: string | null; test: number | null; phase: string | null };
 };
 

@@ -263,9 +263,22 @@ function gwt(v, ruleId) {
 // 一個檔案一個區塊，檔名放在區塊標題列
 const fileBlocks = (list = [], fallback) => (list.length > 1 ? `<p class="files-count">${list.length} 個檔案</p>` : '')
   + list.map(f => codeBlock(f.file || fallback, f)).join('');
-// 重構方向依空行分段，每段一個區塊（「產品碼」「測試碼」各自一塊）
-const refactorBlocks = text => (text || '').split(/\n\s*\n/).map(t => t.trim()).filter(Boolean)
-  .map(t => `<div class="decision"><p style="white-space:pre-wrap">${inline(t)}</p></div>`).join('');
+// 重構方向依空行或「產品碼：」「測試碼：」分段，每段一個區塊；條列行變成清單，其餘一行一段
+const BULLET = /^\s*(?:[-*•・]|\d+[.、)])\s+/;
+function refactorBlock(text) {
+  const [, label, rest] = text.match(/^(產品碼|測試碼)\s*[：:]\s*([\s\S]*)$/) || [null, '', text];
+  const lines = rest.split('\n').map(l => l.trim()).filter(Boolean);
+  let html = '', list = '';
+  const flush = () => { if (list) html += `<ul>${list}</ul>`; list = ''; };
+  for (const line of lines) {
+    if (BULLET.test(line)) { list += `<li>${inline(line.replace(BULLET, ''))}</li>`; continue; }
+    flush();
+    html += `<p>${inline(line)}</p>`;
+  }
+  flush();
+  return `<div class="refactor-block">${label ? `<h4>${label}</h4>` : ''}${html}</div>`;
+}
+const refactorBlocks = text => (text || '').split(/\n\s*\n|\n(?=\s*(?:產品碼|測試碼)\s*[：:])/).map(t => t.trim()).filter(Boolean).map(refactorBlock).join('');
 function codeTabs(s) {
   return `<section>
     <div class="tabs" role="tablist">${[['test', '紅燈測試'], ['impl', '綠燈範例'], ['refactor', '重構方向']].map(([k, n]) => `<button role="tab" data-tab="${k}" aria-selected="${ui.tab === k}">${n}</button>`).join('')}</div>
@@ -304,6 +317,12 @@ function problemCard(p) {
   </section>`;
 }
 
+// 按「跑測試」時要 AI 跑哪些測試；記在這個瀏覽器，預設全部
+const RUNS_TESTS = new Set(['tests_ran', 'refactor_done', 'red_written', 'help_green']);
+const SCOPES = [['test', '這一個'], ['task', '這個 Task'], ['all', '全部']];
+let testScope = (() => { try { return localStorage.getItem('maester-test-scope') || 'all'; } catch { return 'all'; } })();
+const scopePicker = lock => `<div class="scope" role="radiogroup" aria-label="要跑哪些測試"><span>跑哪些測試</span>${SCOPES.map(([k, n]) =>
+  `<button role="radio" aria-checked="${testScope === k}" data-scope="${k}" ${lock ? 'disabled' : ''}>${n}</button>`).join('')}</div>`;
 const STEPS = [['red', '紅', 'AI 寫測試'], ['green', '綠', '你實作'], ['refactor', '重構', '整理程式']];
 function stepper(ph, redBy) {
   const at = STEPS.findIndex(([k]) => k === ph);
@@ -322,16 +341,17 @@ function tddStep(v, P) {
   const s = P.cur, ph = s?.phase, lock = busy(v);
   if (!s) return `<aside class="panel step"><p class="empty">${v.state?.done ? '這個功能已完成。打開左上角清單看過往紀錄。' : 'AI 還沒寫入目前這一步。'}</p></aside>`;
   const retry = s.problem ? '我改好了，再跑一次測試' : '';
-  const acts = ph === 'green' ? `<button class="primary" data-ev="tests_ran" ${lock ? 'disabled' : ''} title="測試全綠後 AI 先 commit 綠燈，再進重構">${retry || '我寫好了，跑測試'}</button>
+  const acts = (ph === 'green' || ph === 'refactor' || (ph === 'red' && s.testCode) ? scopePicker(lock) : '') + (ph === 'green' ? `<button class="primary" data-ev="tests_ran" ${lock ? 'disabled' : ''} title="測試全綠後 AI 先 commit 綠燈，再進重構">${retry || '我寫好了，跑測試'}</button>
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button><button class="link" data-ev="help_green" ${lock ? 'disabled' : ''}>直接幫我寫綠燈</button></div>`
     : ph === 'refactor' ? `<button class="primary" data-ev="refactor_done" ${lock ? 'disabled' : ''} title="AI 跑測試、commit 重構，再寫下一個紅燈">${retry || '重構好了，跑測試並 commit'}</button>
       <div class="minor"><button class="link" data-ev="refactor_skip" ${lock ? 'disabled' : ''} title="不 commit，直接進下一個測試">這輪不重構</button></div>`
     : v.redBy !== 'user' && !s.testCode ? `<p class="note">AI 正在寫這一輪的紅燈測試。</p>`
     : s.testCode ? `<button class="primary" data-ev="red_written" ${lock ? 'disabled' : ''} title="AI 跑測試，確認因為行為還沒實作而紅，再進綠燈">${retry || '測試寫好了，跑測試'}</button>
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button></div>`
-    : `<p class="note">AI 正在準備這一輪要你寫的測試。</p>`;
+    : `<p class="note">AI 正在準備這一輪要你寫的測試。</p>`);
   const note = lock;
   const changed = v.changes.filter(c => !c.test);
+  const openDecisions = (v.state?.roundtable?.decisions || []).filter(d => d.answer == null);
   return `<aside class="panel step" aria-label="目前這一步">${busyBar(v)}
     <section class="head">
       ${stepper(ph, v.redBy)}${redByToggle(v)}
@@ -339,6 +359,7 @@ function tddStep(v, P) {
       ${s.story ? `<p class="lede">${esc(s.story)}</p>` : ''}
     </section>
     ${problemCard(s.problem)}
+    ${openDecisions.length && !v.readonly ? decisionCards(openDecisions, lock) : ''}
     ${codeTabs(s)}
     ${s.ruleRef ? gwt(v, s.ruleRef) : ''}
     <details class="fold" data-fold="changes" ${ui.folds.changes ? 'open' : ''}><summary>這一輪你改了<span class="sum">${changed.length ? `${changed.length} 個檔案` : '還沒有'}</span></summary>${files(changed)}<p class="note">只算產品碼；測試碼不算在內。</p></details>
@@ -369,6 +390,12 @@ function rtCanvas(v) {
   return `<main class="panel canvas"><div class="spine"><p class="where">${esc(name)}</p>${docs.map(f => RT_DOC[f.kind](f)).join('') || '<p class="empty">這個階段還沒有文字紀錄。</p>'}</div></main>`;
 }
 
+// 等使用者裁決的題目：臨時動議與 TDD 中途的選擇都用這一塊，在網頁上就能選
+const decisionCards = (open, lock) => `<section><h3>等你裁決</h3>${open.map(d => `<div class="decision"><p class="q">${esc(d.question)}</p>
+      <div class="opts">${(d.options || []).map(o => `<button class="opt${!ui.draft[d.id]?.free && ui.draft[d.id]?.value === o.label ? ' on' : ''}" data-answer="${esc(d.id)}" data-value="${esc(o.label)}" ${lock ? 'disabled' : ''}>${esc(o.label)}${o.by ? `<span class="who">${esc(o.by)}</span>` : ''}</button>`).join('')}</div>
+      ${d.freeText !== false ? `<textarea data-free="${esc(d.id)}" placeholder="或寫下你的想法…" ${lock ? 'disabled' : ''}>${esc(ui.draft[d.id]?.free ? ui.draft[d.id].value : '')}</textarea>` : ''}
+    </div>`).join('')}${(() => { const n = open.filter(d => ui.draft[d.id]).length; return `<button class="primary" style="margin-top:12px;width:100%" data-send-all ${lock || !n ? 'disabled' : ''}>送出裁決（${n}／${open.length}）</button>`; })()}</section>`;
+
 function rtStep(v) {
   const rt = v.state?.roundtable || {}, lock = busy(v), decisions = rt.decisions || [];
   const open = decisions.filter(d => d.answer == null), answered = decisions.filter(d => d.answer != null);
@@ -376,10 +403,7 @@ function rtStep(v) {
   const stage = RT_STAGES.find(([k]) => k === rt.state)?.[1] || '臨時動議';
   return `<aside class="panel step">${busyBar(v)}
     <section class="head"><p class="where">臨時動議${rt.scale ? ` · ${esc(rt.scale)}` : ''}${live ? '' : ' · 已完成'}</p><h2>${esc(live ? stage : '臨時動議紀錄')}</h2>${live && rt.note ? `<p class="lede">${esc(rt.note)}</p>` : ''}</section>
-    ${live && open.length ? `<section><h3>等你裁決</h3>${open.map(d => `<div class="decision"><p class="q">${esc(d.question)}</p>
-      <div class="opts">${(d.options || []).map(o => `<button class="opt${!ui.draft[d.id]?.free && ui.draft[d.id]?.value === o.label ? ' on' : ''}" data-answer="${esc(d.id)}" data-value="${esc(o.label)}" ${lock ? 'disabled' : ''}>${esc(o.label)}${o.by ? `<span class="who">${esc(o.by)}</span>` : ''}</button>`).join('')}</div>
-      ${d.freeText !== false ? `<textarea data-free="${esc(d.id)}" placeholder="或寫下你的想法…" ${lock ? 'disabled' : ''}>${esc(ui.draft[d.id]?.free ? ui.draft[d.id].value : '')}</textarea>` : ''}
-    </div>`).join('')}${(() => { const n = open.filter(d => ui.draft[d.id]).length; return `<button class="primary" style="margin-top:12px;width:100%" data-send-all ${lock || !n ? 'disabled' : ''}>送出裁決（${n}／${open.length}）</button>`; })()}</section>` : ''}
+    ${live && open.length ? decisionCards(open, lock) : ''}
     ${answered.length ? `<section><h3>你的裁決</h3>${answered.map(d => `<div class="decision"><p class="q" style="font-size:16px">${esc(d.question)}</p><p>${esc(d.answer)}</p></div>`).join('')}</section>` : ''}
     ${dt ? `<section><h3>Decision Table</h3>${dtTable(dt)}</section>` : ''}
   </aside>${dock(v, live && rt.state === 'USER_APPROVAL' ? `<button class="primary" data-ev="approve_design" ${lock ? 'disabled' : ''}>設計確定，開始拆 Task</button>` : live ? '' : '<button class="second" data-back>回到目前這一步</button>',
@@ -471,7 +495,8 @@ app.addEventListener('click', e => {
   if (t.dataset.themeTo) return setTheme(t.dataset.themeTo);
   if (t.dataset.tab) { ui.tab = t.dataset.tab; return render(); }
   if ('back' in t.dataset) { Object.assign(ui, { mode: null, task: null, step: null }); return render(); }
-  if (t.dataset.ev) return send(t.dataset.ev);
+  if (t.dataset.scope) { testScope = t.dataset.scope; try { localStorage.setItem('maester-test-scope', testScope); } catch {} return render(); }
+  if (t.dataset.ev) return send(t.dataset.ev, RUNS_TESTS.has(t.dataset.ev) ? { scope: testScope } : undefined);
   if (t.dataset.resume) return meeting('resume', { feature: +t.dataset.resume }).then(why => { resumeNote = why; if (why) render(); });
   if ('newMeeting' in t.dataset) return openMeeting(true);
   if ('closeMeeting' in t.dataset) return openMeeting(false);

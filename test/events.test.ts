@@ -135,3 +135,30 @@ describe('事件', () => {
     assert.deepEqual(S.ok(['wait']).payload, { answers });
   });
 });
+
+describe('跑測試的範圍', () => {
+  test('跑測試帶範圍_AI領到時看得到', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.toPhase(tests[0].id, 'green');
+    submit(S, 'tests_ran', { scope: 'task' });
+    assert.deepEqual(S.view().pending.map((e: any) => e.payload), [{ scope: 'task' }]);
+  });
+
+  test('不認得的範圍_拒絕', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.toPhase(tests[0].id, 'green');
+    assert.throws(() => submit(S, 'tests_ran', { scope: 'some' }), /測試範圍只能是/);
+  });
+
+  test('TDD中途問的題目_網頁拿得到也能回答', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.toPhase(tests[0].id, 'green');
+    S.ok(['ask'], { code: 'm1', question: '測試名稱要不要帶規則編號？', options: [{ label: '帶', by: 'Uncle Bob' }, { label: '不帶', by: 'Evans' }] });
+    assert.deepEqual(S.view().state.roundtable.decisions.map((d: any) => [d.id, d.answer]), [['m1', null]]);
+    submit(S, 'answer', { answers: [{ decision: 'm1', value: '不帶' }] });
+    assert.equal(S.view().state.roundtable.decisions[0].answer, '不帶');
+  });
+});

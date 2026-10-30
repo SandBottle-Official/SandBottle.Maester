@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-export const SCHEMA = 7;
+export const SCHEMA = 8;
 
 const DDL = `
 CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);
@@ -31,7 +31,7 @@ CREATE TABLE decisions(id INTEGER PRIMARY KEY, feature_id INTEGER NOT NULL REFER
   free_text INTEGER NOT NULL DEFAULT 1, answer TEXT, ord INTEGER NOT NULL, UNIQUE(feature_id, code));
 CREATE TABLE decision_options(decision_id INTEGER NOT NULL REFERENCES decisions(id), ord INTEGER NOT NULL, label TEXT NOT NULL, by_who TEXT);
 CREATE TABLE events(id TEXT PRIMARY KEY, feature_id INTEGER NOT NULL REFERENCES features(id), ts TEXT NOT NULL, type TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('pending','processing','done')), ctx_stage TEXT, ctx_test_id INTEGER, ctx_phase TEXT, text TEXT);
+  status TEXT NOT NULL CHECK(status IN ('pending','processing','done')), ctx_stage TEXT, ctx_test_id INTEGER, ctx_phase TEXT, text TEXT, scope TEXT);
 CREATE TABLE event_answers(event_id TEXT NOT NULL REFERENCES events(id), ord INTEGER NOT NULL, decision TEXT NOT NULL, value TEXT NOT NULL,
   free INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE adaptations(id INTEGER PRIMARY KEY, topic TEXT NOT NULL, stage TEXT, feature_id INTEGER REFERENCES features(id), test_id INTEGER,
@@ -46,6 +46,7 @@ const UPGRADES: Record<number, string> = {
   5: 'ALTER TABLE steps ADD COLUMN problem TEXT;',
   6: `CREATE TABLE adaptations(id INTEGER PRIMARY KEY, topic TEXT NOT NULL, stage TEXT, feature_id INTEGER REFERENCES features(id), test_id INTEGER,
   maester_way TEXT NOT NULL, user_way TEXT NOT NULL, why TEXT, council TEXT, created_at TEXT NOT NULL);`,
+  7: 'ALTER TABLE events ADD COLUMN scope TEXT;',
 };
 
 export function migrateSchema(connection: DatabaseSync, version: number) {
