@@ -1,6 +1,6 @@
 {
   "name": "maester",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "description": "SandBottle Maester: Small Council design and outside-in TDD workbench for Claude Code and Codex.",

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 — 2026-10-30
+
+### Features
+
+- Choices are made on the page: open questions now show at the top of the step panel in every TDD phase, not only during the council, and the AI puts every choice (a 臨時動議, two ways to fix something) there with `maester ask`.
+- Pick which tests to run: above the 「跑測試」 button choose 「這一個」, 「這個 Task」 or 「全部」 (remembered in your browser). The AI runs only that scope; commits then require that scope to be green, so switch back to 「全部」 now and then.
+- The refactoring direction reads in blocks: 「產品碼」 and 「測試碼」 each get their own card, `- ` lines become lists, and every other line is its own paragraph.
+
 ## 1.5.1 — 2026-10-28
 
 ### Fixes

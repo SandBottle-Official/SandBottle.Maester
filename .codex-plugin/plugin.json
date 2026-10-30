@@ -1,6 +1,6 @@
 {
   "name": "maester",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Small Council design review and outside-in TDD where the AI writes the red test and you forge the green — with a local workbench that shows every link of your chain.",
   "author": {
     "name": "NewtonZhang511061",
