@@ -46,7 +46,12 @@ Small steps, one test per round.
    - **One place to change**: if the interface changed next round (path, header, request/response JSON, test double type, how the SUT is built and the request assembled, Fixtures values), how many places would need editing? More than one means centralizing into a constant, alias, Scenario, helper or Fixtures.
    - **Readability**: the test body holds only the scenario and the assertions; the name and the three parts (arrange / act / assert) tell which business behavior is verified. Magic values become business nouns from Fixtures; assertion messages and names use domain language.
    - **Duplication**: tests in one describe that differ only in data become a Scenario method or data-driven (for example `test.each`), without hiding which business case failed.
-   - Refactor while staying green. When every item is fine, say explicitly 「測試碼：檢視過，這輪不用改」; never omit this part.
+   - **Whole file, not just the new test**: review every test in the class or file this round touched. One class that mixes several Rules or scenarios (validation, period stacking, permission grants…) and has grown past about eight tests is split into nested classes per scenario; names drift into several styles → one style; reversed `expected`/`actual` → swapped. Judging only the new test is how a file rots one green test at a time.
+   - Refactor while staying green. When every item is fine, say explicitly 「測試碼：檢視過，這輪不用改」 and name what you looked at (the whole file, how many tests); never omit this part.
+
+**Reviews a skipped refactor still owes.** Rounds that never reach a refactor step (characterization tests, passing guards, `refactor_skip`, a test folded or marked skipped with an empty commit, several tests written in one go) skip the test-code review too. Carry it to the next refactor step, and before `complete` on the **last test of each Task** review the whole test file of that Task even if this round's refactor was skipped: write the result into `refactor` (or `maester ask` when it needs a choice).
+
+**Temporary decisions expire.** An adaptation whose reason is a present condition (「目前測試少，先不引入 Fixtures」, 「這輪只…」) holds only while the condition holds. At each Task boundary re-check those reasons against the code; when one no longer holds (the file now has many tests), re-raise it with `maester ask` instead of silently following the old adaptation.
 
 The AI writes the code of a step itself only when the user says 「幫我 green」 or 「幫我實作這一輪」.
 

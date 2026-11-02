@@ -53,6 +53,13 @@ describe('skills', () => {
     for (const name of ['open', 'stop']) assert.equal(frontmatter(name)['user-invocable'], undefined);
   });
 
+  test('forge_reviews_whole_test_file_and_owes_skipped_reviews', () => {
+    const forge = skillText('forge');
+    assert.match(forge, /Whole file, not just the new test/);
+    assert.match(forge, /last test of each Task/);
+    assert.match(forge, /Temporary decisions expire/);
+  });
+
   test('state_spec_lists_every_cli_command', () => {
     const spec = fs.readFileSync(path.join(SKILLS_ROOT, 'open', 'references', 'state-spec.md'), 'utf8');
     for (const command of COMMAND_NAMES) assert.match(spec, new RegExp(`\`maester ${command}\\b`), command);
