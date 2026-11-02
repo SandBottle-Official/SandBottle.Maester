@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1 — 2026-11-02
+
+### Fixes
+
+- The refactor step reviews the whole test file the round touched, not only the new test: a class mixing several scenarios past about eight tests is split into nested classes, drifting names get one style, reversed `expected`/`actual` are swapped. 「測試碼：檢視過」 now names what was looked at.
+- Rounds that skip refactoring (characterization tests, passing guards, 「跳過重構」, tests marked skipped) no longer skip the test-code review: it carries to the next refactor step, and the last test of every Task reviews the whole test file before it completes.
+- Temporary decisions expire: an adaptation whose reason is a present condition (「目前測試少，先不引入 Fixtures」) is re-checked at each Task boundary and re-raised on the page once the condition no longer holds.
+
 ## 1.6.0 — 2026-10-30
 
 ### Features
