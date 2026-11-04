@@ -101,6 +101,12 @@ function rejectInvalidAddedLines(content: CodeFile | CodeFile[] | undefined) {
   if (!valid) reject('greenExample／refactorExample 的 added 只能是正整數行號');
 }
 
+// 沒有 added 的綠燈範例在頁面上看不出改了哪幾行
+function rejectGreenWithoutAdded(content: CodeFile | CodeFile[] | undefined) {
+  const files = content === undefined ? [] : [content].flat();
+  if (files.some(f => !f.added?.length)) reject('greenExample 每個檔案都要有 added：新增或修改的行號（整個檔案都是新的就列出全部行號）');
+}
+
 function codeColumns(prefix: 'test' | 'green', content: CodeFile | CodeFile[] | undefined): CodeColumns {
   if (content === undefined) return {};
   const files = Array.isArray(content) ? content : null;
@@ -122,6 +128,7 @@ export function recordPhase(db: Db, input: PhaseInput = {}) {
     if (phase !== step.phase && (!step.phase || NEXT_PHASE[step.phase] !== phase)) reject(`不能從 ${step.phase} 換到 ${phase}`);
     rejectInvalidAddedLines(greenExample);
     rejectInvalidAddedLines(refactorExample);
+    rejectGreenWithoutAdded(greenExample);
     if (problem && typeof problem.title !== 'string') reject('problem 要有 title（一句話說哪裡卡住）');
     const changes: Record<string, SQLInputValue | undefined> = {
       phase, title, story, layer, rule_ref: ruleRef, failure, refactor, hint,

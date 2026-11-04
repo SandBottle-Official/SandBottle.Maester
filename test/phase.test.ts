@@ -58,12 +58,20 @@ describe('換階段', () => {
   test('多個檔案的綠燈範例_各自讀回', () => {
     const S = scenario();
     const { tests } = S.inTdd();
-    const files = [{ file: 'a.ts', lang: 'ts', code: 'a' }, { file: 'b.ts', lang: 'ts', code: 'b', added: [1] }];
+    const files = [{ file: 'a.ts', lang: 'ts', code: 'a', added: [1] }, { file: 'b.ts', lang: 'ts', code: 'b', added: [1] }];
     S.toPhase(tests[0].id, 'green');
     S.ok(['phase'], { test: tests[0].id, phase: 'green', greenExample: files });
     assert.deepEqual(S.view().state.tdd.greenFiles, files);
-    S.ok(['phase'], { test: tests[0].id, phase: 'green', greenExample: { file: 'c.ts', lang: 'ts', code: 'c' } });
-    assert.deepEqual(S.view().state.tdd.greenFiles, [{ file: 'c.ts', lang: 'ts', code: 'c', added: [] }]);
+    S.ok(['phase'], { test: tests[0].id, phase: 'green', greenExample: { file: 'c.ts', lang: 'ts', code: 'c', added: [1] } });
+    assert.deepEqual(S.view().state.tdd.greenFiles, [{ file: 'c.ts', lang: 'ts', code: 'c', added: [1] }]);
+  });
+
+  test('綠燈範例沒標新增行_拒收', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    S.toPhase(tests[0].id, 'green');
+    S.rejected(['phase'], { test: tests[0].id, phase: 'green', greenExample: { file: 'a.ts', lang: 'ts', code: 'a' } }, /added/);
+    S.rejected(['phase'], { test: tests[0].id, phase: 'green', greenExample: [{ file: 'a.ts', code: 'a', added: [1] }, { file: 'b.ts', code: 'b', added: [] }] }, /added/);
   });
 
   test('重構範例_單一或多個檔案都讀回成陣列', () => {

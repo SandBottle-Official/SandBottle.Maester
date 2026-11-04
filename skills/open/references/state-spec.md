@@ -72,7 +72,7 @@ Document kinds for `doc`:
 - `ai` (default): the AI writes the red test to disk, runs it, and records it in **one** `maester phase` call with `phase` green (test code, failure, green example together), so the page moves straight to green. Never leave an AI-written step at red.
 - `user`: the AI writes **no files**. It records `phase` red with `title` (the test name), `story` (the behavior the test verifies), `testCode` as a snippet (`{ "lang", "code" }`, no `file`) and the expected `failure`, then waits for `red_written`.
 
-`testCode`, `greenExample` and `refactorExample` may be a single file `{ file, lang, code }` or an array (one block per file on the page). When the code is already on disk (the red test, code the AI wrote for 「幫我 green」), send only `{ "file": "repo/relative/path" }`: `maester` reads the file and stores a snapshot, and `lang` defaults to the extension. Add `"lines": [start, end]` to keep only those lines (for example just the new test); `added` then uses the file's line numbers. Write `code` only for examples that exist nowhere else.
+`testCode`, `greenExample` and `refactorExample` may be a single file `{ file, lang, code }` or an array (one block per file on the page). When the code is already on disk (the red test, code the AI wrote for 「幫我 green」), send only `{ "file": "repo/relative/path" }`: `maester` reads the file and stores a snapshot, and `lang` defaults to the extension. Add `"lines": [start, end]` to keep only those lines (for example just the new test); `added` then uses the file's line numbers. Write `code` only for examples that exist nowhere else. Every file of `greenExample` must carry `added` (the new or changed lines; every line for a new file), or `phase` rejects it; give `added` in `refactorExample` the same way.
 
 `lesson` (optional) teaches the framework syntax and concepts of the step, shown under the selected test:
 `{ "intro": "一句話", "topics": [{ "name": "Hono", "points": [{ "term": "app.post(path, handler)", "analog": "C#：[HttpPost]", "text": "說明，可用 `行內程式碼`", "code": { "lang": "ts", "code": "…" } }] }] }`. `analog` compares with a language the user already knows and names that language; `code` is optional.
@@ -109,6 +109,7 @@ Always finish with `maester done <event id>`; until then the page shows the even
 | `tests_ran` | Run the tests; when all green, commit the green (`feat:`/`test:`, `Green-By: user`) and enter refactor. Otherwise (this test still red, or an earlier test regressed) write a `problem` and stay in green |
 | `hint` | Write a `hint` in the same phase without giving away the full answer |
 | `help_green` | Same as 「幫我 green」: the AI writes the green, runs the tests, commits (`Green-By: ai`), then enters refactor |
+| `help_refactor` | Same as 「幫我重構」: the AI applies this round's refactoring direction to the files, then continues as `refactor_done` (the refactor commit repeats the round's `Green-By`) |
 | `refactor_done` | Run the tests; anything red → write a `problem` and stay in refactor. Otherwise commit any changes (`refactor:`), `complete` bound to HEAD, write the next red test |
 | `refactor_skip` | No commit; `complete` bound to the green commit, write the next red test |
 | `next_round` | Older button, same as `refactor_done` |
@@ -116,7 +117,7 @@ Always finish with `maester done <event id>`; until then the page shows the even
 | `resume` | The user chose an unfinished meeting on the page; the server already made it current. `show`, then continue its council or TDD where it stopped |
 | `prompt` | `payload.text` is a message from the page; treat it as if typed in the terminal. Not tied to a step; accepted even when the page is stale |
 
-`tests_ran`, `refactor_done`, `red_written` and `help_green` may carry `"payload": { "scope": "test" | "task" | "all" }`, the test scope picked on the page: only the current test, the tests of the current Task, or the whole suite (missing means `all`). Run that scope; commits and `complete` require that scope to be green.
+`tests_ran`, `refactor_done`, `red_written`, `help_green` and `help_refactor` may carry `"payload": { "scope": "test" | "task" | "all" }`, the test scope picked on the page: only the current test, the tests of the current Task, or the whole suite (missing means `all`). Run that scope; commits and `complete` require that scope to be green.
 
 `maester ask` works in every stage; open questions show on the page during TDD too, and their `answer` event carries the context of the current step.
 

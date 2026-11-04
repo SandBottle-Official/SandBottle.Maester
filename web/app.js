@@ -92,7 +92,7 @@ const meetingModal = () => `<div class="scrim" data-close-meeting></div><div cla
   <div class="modal-head"><h2 id="meeting-title">新建會議</h2><button class="icon" data-close-meeting aria-label="關閉">✕</button></div>
   <p class="note">寫下要討論的功能，AI 會召開臨時動議。第一行會當成會議名稱。</p><div class="modal-body"></div></div>`;
 
-const LABEL = { answer: '回答', approve_design: '設計確定', tests_ran: '跑測試', hint: '提示', help_green: '幫我寫綠燈', refactor_done: '重構好了', refactor_skip: '跳過重構', next_round: '下一輪', prompt: '你的訊息', red_written: '測試寫好了', start_council: '新建會議', resume: '繼續會議' };
+const LABEL = { answer: '回答', approve_design: '設計確定', tests_ran: '跑測試', hint: '提示', help_green: '幫我寫綠燈', help_refactor: '幫我重構', refactor_done: '重構好了', refactor_skip: '跳過重構', next_round: '下一輪', prompt: '你的訊息', red_written: '測試寫好了', start_council: '新建會議', resume: '繼續會議' };
 // 送出後到 AI 處理完之前按鈕都鎖住；AI 中斷時可以「解除鎖定」重按
 const inFlight = v => [...(v.processing || []), ...(v.pending || [])].filter(e => !ui.unlocked.has(e.id));
 function busy(v) {
@@ -318,7 +318,7 @@ function problemCard(p) {
 }
 
 // 按「跑測試」時要 AI 跑哪些測試；記在這個瀏覽器，預設全部
-const RUNS_TESTS = new Set(['tests_ran', 'refactor_done', 'red_written', 'help_green']);
+const RUNS_TESTS = new Set(['tests_ran', 'refactor_done', 'red_written', 'help_green', 'help_refactor']);
 const SCOPES = [['test', '這一個'], ['task', '這個 Task'], ['all', '全部']];
 let testScope = (() => { try { return localStorage.getItem('maester-test-scope') || 'all'; } catch { return 'all'; } })();
 const scopePicker = lock => `<div class="scope" role="radiogroup" aria-label="要跑哪些測試"><span>跑哪些測試</span>${SCOPES.map(([k, n]) =>
@@ -344,7 +344,7 @@ function tddStep(v, P) {
   const acts = (ph === 'green' || ph === 'refactor' || (ph === 'red' && s.testCode) ? scopePicker(lock) : '') + (ph === 'green' ? `<button class="primary" data-ev="tests_ran" ${lock ? 'disabled' : ''} title="測試全綠後 AI 先 commit 綠燈，再進重構">${retry || '我寫好了，跑測試'}</button>
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button><button class="link" data-ev="help_green" ${lock ? 'disabled' : ''}>直接幫我寫綠燈</button></div>`
     : ph === 'refactor' ? `<button class="primary" data-ev="refactor_done" ${lock ? 'disabled' : ''} title="AI 跑測試、commit 重構，再寫下一個紅燈">${retry || '重構好了，跑測試並 commit'}</button>
-      <div class="minor"><button class="link" data-ev="refactor_skip" ${lock ? 'disabled' : ''} title="不 commit，直接進下一個測試">這輪不重構</button></div>`
+      <div class="minor"><button class="link" data-ev="help_refactor" ${lock ? 'disabled' : ''} title="AI 照重構方向改程式、跑測試、commit，再寫下一個紅燈">直接幫我重構</button><button class="link" data-ev="refactor_skip" ${lock ? 'disabled' : ''} title="不 commit，直接進下一個測試">這輪不重構</button></div>`
     : v.redBy !== 'user' && !s.testCode ? `<p class="note">AI 正在寫這一輪的紅燈測試。</p>`
     : s.testCode ? `<button class="primary" data-ev="red_written" ${lock ? 'disabled' : ''} title="AI 跑測試，確認因為行為還沒實作而紅，再進綠燈">${retry || '測試寫好了，跑測試'}</button>
       <div class="minor"><button class="link" data-ev="hint" ${lock ? 'disabled' : ''}>給我一個提示</button></div>`
