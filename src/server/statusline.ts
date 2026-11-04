@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { reject } from '../core/errors.ts';
 import { maesterHome } from '../core/paths.ts';
-import { PLUGIN_ROOT } from './protocol.ts';
+import { isNewerVersion, PLUGIN_ROOT, PLUGIN_VERSION } from './protocol.ts';
 
 // 用量（5h／週）只在 statusline 的 JSON 裡：第一次 SessionStart 自動把 statusline 換成 maester，原本的指令照樣跑。
 // 備份檔記著原本的 statusline；off 表示使用者還原或自己換掉了，之後不再自動接上
@@ -13,6 +13,8 @@ const settingsFile = () => path.join(process.env.CLAUDE_CONFIG_DIR || path.join(
 const backupFile = () => path.join(maesterHome(), 'statusline.json');
 export const ourCommand = () => `node "${path.join(PLUGIN_ROOT, 'bin/maester.mjs')}" statusline`;
 const isOurs = (command: unknown) => typeof command === 'string' && /maester\.mjs" statusline$/.test(command);
+// Installs live in .../maester/<version>/; a checkout has no version in its path and is always repointed.
+const installedVersion = (command: string) => command.match(/[\\/](\d+(?:\.\d+)*)[\\/]bin[\\/]maester\.mjs" statusline$/)?.[1];
 
 function readSettings(): Record<string, unknown> {
   let text: string;
@@ -68,6 +70,8 @@ export function repointStatusline() {
   const settings = readSettings(), current = settings.statusLine as StatusLine | undefined;
   if (!isOurs(current?.command)) return writeBackup({ off: true });
   if (current?.command === ourCommand()) return;
+  const version = installedVersion(current!.command!);
+  if (version && isNewerVersion(version, PLUGIN_VERSION)) return;
   settings.statusLine = { ...current, command: ourCommand() };
   writeSettings(settings);
 }

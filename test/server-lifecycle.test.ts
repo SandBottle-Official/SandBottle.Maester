@@ -72,7 +72,7 @@ async function serverStartedFrom(root: string, repo: string, env: NodeJS.Process
 }
 
 describe('server 生命週期', () => {
-  test('restarts_server_of_another_version', async () => {
+  test('restarts_server_of_older_version', async () => {
     const r = tempRepo();
     const port = await freePort();
     const { env } = isolatedServerEnv(port);
@@ -83,6 +83,19 @@ describe('server 生命週期', () => {
     assert.equal(outdated.version, '0.0.1');
     assert.equal(current.version, PLUGIN_VERSION);
     assert.notEqual(current.pid, outdated.pid);
+  });
+
+  test('keeps_server_of_newer_version', async () => {
+    const r = tempRepo();
+    const port = await freePort();
+    const { env } = isolatedServerEnv(port);
+    const newer = await serverStartedFrom(copyOfPlugin('999.0.0'), r.repo, env, port);
+
+    const afterEnsure = await serverStartedFrom(REPO_ROOT, r.repo, env, port);
+    process.kill(newer.pid);
+    await waitUntilPortIsFree(port);
+
+    assert.equal(afterEnsure.pid, newer.pid);
   });
 
   test('keeps_server_of_same_version_from_another_install', async () => {

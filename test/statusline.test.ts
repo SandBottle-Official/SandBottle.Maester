@@ -51,6 +51,21 @@ describe('statusline 接到 Maester', () => {
     assert.equal(statuslineInstalled(), false);
   });
 
+  test('SessionStart 指回目前版本_但不把較新的版本換回舊版', async () => {
+    const { installStatusline, repointStatusline, ourCommand } = await import('../src/server/statusline.ts');
+    const command = (version: string) => `node "${path.join(home, 'cache', 'maester', version, 'bin', 'maester.mjs')}" statusline`;
+    fs.writeFileSync(settings, JSON.stringify({}));
+    installStatusline();
+
+    fs.writeFileSync(settings, JSON.stringify({ statusLine: { type: 'command', command: command('0.0.1') } }));
+    repointStatusline();
+    assert.equal(read().statusLine.command, ourCommand());
+
+    fs.writeFileSync(settings, JSON.stringify({ statusLine: { type: 'command', command: command('999.0.0') } }));
+    repointStatusline();
+    assert.equal(read().statusLine.command, command('999.0.0'));
+  });
+
   test('settings 不是純 JSON_拒絕且不改檔', async () => {
     const { installStatusline } = await import('../src/server/statusline.ts');
     fs.writeFileSync(settings, '{ // comment\n}');

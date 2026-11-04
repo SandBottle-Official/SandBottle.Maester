@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { maesterHome, port } from '../core/paths.ts';
-import { KEY_HEADER, type Ping, PLUGIN_ROOT, PLUGIN_VERSION, PROTOCOL } from './protocol.ts';
+import { isNewerVersion, KEY_HEADER, type Ping, PLUGIN_ROOT, PLUGIN_VERSION, PROTOCOL } from './protocol.ts';
 
 const PING_TIMEOUT_MS = 500;
 const POLL_INTERVAL_MS = 100;
@@ -11,9 +11,9 @@ const POLL_ATTEMPTS = 20;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const serverLog = () => path.join(maesterHome(), 'server.log');
 
-// Claude Code and Codex install the same version in different folders; only a version change should replace a running server.
+// Claude Code and Codex install the same version in different folders; only an older version should replace a running server.
 const isMaester = (p: Ping | null): p is Ping => p?.ok === true && typeof p.protocol === 'number';
-const isCurrent = (p: Ping | null) => isMaester(p) && p.protocol === PROTOCOL && p.version === PLUGIN_VERSION;
+const isUsable = (p: Ping | null) => isMaester(p) && (p.protocol === PROTOCOL && p.version === PLUGIN_VERSION || typeof p.version === 'string' && isNewerVersion(p.version, PLUGIN_VERSION));
 
 // Not fetch: its pooled sockets throw uncatchable errors when the old server is killed mid-request.
 export function ping(): Promise<Ping | null> {
@@ -65,12 +65,12 @@ function spawnServer() {
 
 export async function ensureServer() {
   const running = await ping();
-  if (isCurrent(running)) return;
+  if (isUsable(running)) return;
   if (isMaester(running)) await stopOutdated(running);
   const exited = spawnServer();
   for (let i = 0; i < POLL_ATTEMPTS && !exited.value; i++) {
     await sleep(POLL_INTERVAL_MS);
-    if (isCurrent(await ping())) return;
+    if (isUsable(await ping())) return;
   }
   throw new Error(`server 沒有在 port ${port()} 啟動（被占用時用 MAESTER_PORT 換一個），看 ${serverLog()}`);
 }
