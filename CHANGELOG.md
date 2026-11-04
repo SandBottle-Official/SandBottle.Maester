@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.0 — 2026-11-04
+
+### Features
+
+- 「直接幫我重構」 in the refactor step: the AI applies this round's refactoring direction, runs the chosen test scope, commits `refactor:` and writes the next red test.
+
+### Fixes
+
+- Green examples always mark their new lines: `maester phase` rejects a `greenExample` file without `added`, so the AI can no longer leave the highlight out.
+- An older session no longer replaces a newer Maester server or points the statusline back at an older install.
+
 ## 1.6.1 — 2026-11-02
 
 ### Fixes
