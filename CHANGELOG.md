@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.1 — 2026-11-06
+
+### Fixes
+
+- Test doubles are mocks: contract and use case tests stub ports with the project's mocking library instead of hand-written in-memory Fakes, and a Fake found during refactor is replaced by a mock.
+- Repositories and gateways never return null: absence is a domain exception (for example `NotFoundOrderException`), and mocks stub a real object or throw that exception instead of returning null.
+- The refactor step centralizes shared test doubles: mocks, SUT dependencies and business-named `Given…` stubs move into one test base, and saved values are captured through a callback.
+
 ## 1.7.0 — 2026-11-04
 
 ### Features
