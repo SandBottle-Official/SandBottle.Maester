@@ -21,15 +21,17 @@ The CLI is `node <plugin-root>/bin/maester.mjs`; `<plugin-root>` is two director
 | Order | Layer | Subject | Test double | Verifies |
 |---|---|---|---|---|
 | 0 | Test infrastructure | — | — | Harness, fixtures, builders; may be written in one go |
-| 1 | **Contract test** (API contract) | HTTP interface | Use case replaced by a **Fake** (DI container bean/service override) | Routing, authorization, request binding, response envelope, serialization (naming conventions), domain exception → HTTP status mapping |
-| 2 | **Use case test** (sociable unit test) | Application service | Driven ports (gateway/repository) as **in-memory Fakes** | Business rules; domain types are driven out from this layer |
+| 1 | **Contract test** (API contract) | HTTP interface | Use case replaced by a **mock** registered in the DI container (bean/service override) | Routing, authorization, request binding, response envelope, serialization (naming conventions), domain exception → HTTP status mapping |
+| 2 | **Use case test** (sociable unit test) | Application service | Driven ports (gateway/repository) as **mocks** from the project's mocking library | Business rules; domain types are driven out from this layer |
 | 3 | **Narrow integration test** | Driven adapter (repository implementation) | None; a real database (Testcontainers) | Queries, mapping, transaction behavior |
 | 4 | **DI wiring and end-to-end** | The whole composition root | None | Wiring is correct and the path works |
 
 - Task 00 of a plan is infrastructure; Task 01 is always a contract test.
 - From the Decision Table: business Rules and their Given/When/Then → use case tests; authorization, envelope and error mapping → contract tests; persistence semantics → narrow integration tests.
 - Domain types get no solitary unit tests, except pure calculations with many combinations (money, periods, date boundaries and similar value objects) where testing through the use case would explode the fixtures.
-- Integration tests are expected to pass immediately. A red one means the Fake and the real adapter disagree: first write a use case or adapter test that reproduces the same failure, fix it, then return to the integration test.
+- Test doubles are **mocks** (Moq, Mockito, `vi.fn`…), stubbed per scenario; never hand-write in-memory Fakes. A mock answers only what the scenario sets up, so the test shows which port behavior the rule depends on.
+- Repositories and gateways never return null. Absence is part of the port's contract and is expressed by a domain exception (for example `NotFoundOrderException`); a use case that treats absence as a business branch catches that exception. Mocks follow the same contract: stub a real object or throw the exception, never `ReturnsAsync(null)` or rely on the library's default null.
+- Integration tests are expected to pass immediately. A red one means a mock's stubbed behavior and the real adapter disagree: first write a use case or adapter test that reproduces the same failure, fix it, then return to the integration test.
 
 ## Changing legacy behavior
 
@@ -47,6 +49,7 @@ Small steps, one test per round.
    - **Readability**: the test body holds only the scenario and the assertions; the name and the three parts (arrange / act / assert) tell which business behavior is verified. Magic values become business nouns from Fixtures; assertion messages and names use domain language.
    - **Duplication**: tests in one describe that differ only in data become a Scenario method or data-driven (for example `test.each`), without hiding which business case failed.
    - **Whole file, not just the new test**: review every test in the class or file this round touched. One class that mixes several Rules or scenarios (validation, period stacking, permission grants…) and has grown past about eight tests is split into nested classes per scenario; names drift into several styles → one style; reversed `expected`/`actual` → swapped. Judging only the new test is how a file rots one green test at a time.
+   - **Shared test doubles**: mock creation, the SUT's dependencies and recurring stubs move into one test base (or helper) per use-case group: the mocks as properties, `Given…` methods named in business language for stubs (`GivenBotUserIdOwnedBy(owner)`), and a callback that captures what the SUT saved so tests assert on it. A hand-written Fake found in the file is replaced by such a mock during refactor.
    - Refactor while staying green. When every item is fine, say explicitly 「測試碼：檢視過，這輪不用改」 and name what you looked at (the whole file, how many tests); never omit this part.
 
 **Reviews a skipped refactor still owes.** Rounds that never reach a refactor step (characterization tests, passing guards, `refactor_skip`, a test folded or marked skipped with an empty commit, several tests written in one go) skip the test-code review too. Carry it to the next refactor step, and before `complete` on the **last test of each Task** review the whole test file of that Task even if this round's refactor was skipped: write the result into `refactor` (or `maester ask` when it needs a choice).
@@ -113,4 +116,4 @@ No `<summary>` or comments that restate the code; names carry intent. Only a "wh
 
 ## Project mapping
 
-Which test project holds each layer, the harness and Fake class names, and where plans and specs live come from the project's agent instructions (`CLAUDE.md` or `AGENTS.md`); if absent, explore the existing tests first, then ask the user.
+Which test project holds each layer, the harness and test base names, and where plans and specs live come from the project's agent instructions (`CLAUDE.md` or `AGENTS.md`); if absent, explore the existing tests first, then ask the user.
