@@ -213,7 +213,7 @@ pre .k{color:var(--tk-k)} pre .ty{color:var(--tk-ty)} pre .f{color:var(--tk-f)} 
 .code .bar span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:rtl;text-align:left;margin-right:8px}
 .code .bar .copy{flex:none}
 .code pre.shiki{background:transparent!important;padding:12px 0}
-.code pre.shiki .line{display:inline-block;width:100%;padding:0 16px}
+.code pre.shiki .line{display:block;padding:0 16px}
 .code pre.shiki .line.add{background:var(--ins);box-shadow:inset 3px 0 0 var(--green)}
 .node .say{padding:6px 0;border-top:1px solid var(--active)}
 .node .say:first-of-type{border-top:0}
@@ -413,3 +413,4 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .tdd .step .lede{font-size:15px;line-height:1.6}
 .tdd .step section.code-cols{padding:8px 24px 20px}
 .tdd .step .code pre{line-height:1.6}
+.code pre.shiki .line:empty::after{content:"\200b"}

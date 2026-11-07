@@ -48,6 +48,8 @@ const highlighted = new Map();
 function paint(b, html) {
   const box = b.querySelector('.body');
   box.innerHTML = html;
+  // Shiki 在每行之間留了換行字元，配上 inline-block 的行會多出一截空白
+  for (const n of [...(box.querySelector('pre.shiki code')?.childNodes || [])]) if (n.nodeType === Node.TEXT_NODE && !n.textContent.trim()) n.remove();
   const added = (b.dataset.added || '').split(',').filter(Boolean).map(Number);
   box.querySelectorAll('.line').forEach((l, i) => added.includes(i + 1) && l.classList.add('add'));
 }
