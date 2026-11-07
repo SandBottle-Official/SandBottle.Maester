@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { describe, test } from 'node:test';
 import { Fixtures } from './support/fixtures.ts';
-import { scenario, type Scenario } from './support/scenario.ts';
+import { scenario, submit, type Scenario } from './support/scenario.ts';
 import { CLI, openStore } from './support/system.ts';
 
 // maester open 會先建好空的 maester.db；測試不起伺服器，直接建
@@ -47,6 +47,16 @@ describe('網頁上的會議', () => {
     onStore(S, db => db.resumeFromPage(first));
     assert.equal(S.view().featureId, first);
     assert.deepEqual(pendingTypes(S), ['resume']);
+  });
+
+  test('AI還在處理目前會議的事件_新建或繼續會議都拒絕且不換目前功能', () => {
+    const S = scenario();
+    const first = S.start();
+    const second = S.start(Fixtures.門市權限);
+    submit(S, 'prompt', { text: '還在處理' });
+    assert.throws(() => onStore(S, db => db.startFromPage('另一場')), /還在處理/);
+    assert.throws(() => onStore(S, db => db.resumeFromPage(first)), /還在處理/);
+    assert.equal(S.view().featureId, second);
   });
 });
 

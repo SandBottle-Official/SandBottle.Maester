@@ -34,12 +34,21 @@ export class Store extends Db {
     // 先擋太長的內容，免得功能建好了事件卻寫不進去
     if (full.length > MAX_PROMPT_LENGTH) reject(`內容超過 ${MAX_PROMPT_LENGTH} 字`);
     const name = full.split('\n')[0].trim().slice(0, MAX_MEETING_NAME);
+    this.rejectWhileBusy();
     const { feature } = startFeature(this, { name });
     return { feature, ...submitEvent(this, { type: 'start_council', feature, payload: { text: full } }) };
   }
   resumeFromPage(id: unknown) {
+    this.rejectWhileBusy();
     const { feature } = switchFeature(this, String(id));
     return { feature, ...submitEvent(this, { type: 'resume', feature }) };
+  }
+
+  // AI 處理到一半就換目前功能，它接下來的 ask／doc／stage 會寫進別的會議，舊會議的事件也會卡著
+  private rejectWhileBusy() {
+    const feature = currentFeature(this);
+    if (feature && this.get("SELECT 1 FROM events WHERE feature_id = ? AND status IN ('pending', 'processing')", feature.id))
+      reject(`AI 還在處理「${feature.name}」，做完再換會議；AI 中斷了就先按「解除鎖定」`);
   }
 
   addDoc(doc?: DocInput) { return addDoc(this, doc); }
