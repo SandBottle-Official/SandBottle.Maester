@@ -66,7 +66,7 @@ export type EventRow = {
   scope: string | null;
 };
 
-export type CodeFile = { file?: string | null; lang?: string | null; code?: string | null; added?: number[] };
+export type CodeFile = { file?: string | null; lang?: string | null; code?: string | null; added?: number[]; removed?: number[] };
 
 export type Verdict = 'accept' | 'reject' | 'ask';
 

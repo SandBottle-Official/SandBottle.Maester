@@ -50,9 +50,13 @@ function paint(b, html) {
   box.innerHTML = html;
   // Shiki 在每行之間留了換行字元，配上 inline-block 的行會多出一截空白
   for (const n of [...(box.querySelector('pre.shiki code')?.childNodes || [])]) if (n.nodeType === Node.TEXT_NODE && !n.textContent.trim()) n.remove();
-  const added = (b.dataset.added || '').split(',').filter(Boolean).map(Number);
-  box.querySelectorAll('.line').forEach((l, i) => added.includes(i + 1) && l.classList.add('add'));
+  const added = lineList(b.dataset.added), removed = lineList(b.dataset.removed);
+  box.querySelectorAll('.line').forEach((l, i) => {
+    if (added.includes(i + 1)) l.classList.add('add');
+    else if (removed.includes(i + 1)) l.classList.add('del');
+  });
 }
+const lineList = text => (text || '').split(',').filter(Boolean).map(Number);
 async function highlightAll() {
   const themeName = document.documentElement.dataset.theme === 'violet' ? 'pierre-light' : 'pierre-dark';
   const key = b => `${themeName}|${b.dataset.lang}|${b.dataset.raw}`;
@@ -69,12 +73,14 @@ async function highlightAll() {
     } catch {}
   }
 }
+// added 是新增或改過的行（綠 +），removed 是要刪掉的舊行（紅 −）
 function codeBlock(label, c) {
   if (!c?.code) return '';
-  const added = (c.added || []).filter(Number.isInteger);
-  return `<div class="code" data-raw="${esc(c.code)}" data-lang="${esc(c.lang)}" data-added="${esc(added.join(','))}">
+  const added = (c.added || []).filter(Number.isInteger), removed = (c.removed || []).filter(Number.isInteger);
+  const mark = i => added.includes(i + 1) ? ' add' : removed.includes(i + 1) ? ' del' : '';
+  return `<div class="code" data-raw="${esc(c.code)}" data-lang="${esc(c.lang)}" data-added="${esc(added.join(','))}" data-removed="${esc(removed.join(','))}">
     <div class="bar"><span title="${esc(label)}">${esc(label)}</span><button class="copy">複製</button></div>
-    <div class="body"><pre>${c.code.split('\n').map((l, i) => `<span class="ln${added.includes(i + 1) ? ' add' : ''}">${esc(l) || ' '}</span>`).join('')}</pre></div></div>`;
+    <div class="body"><pre>${c.code.split('\n').map((l, i) => `<span class="ln${mark(i)}">${esc(l) || ' '}</span>`).join('')}</pre></div></div>`;
 }
 
 /* ---------- events → inbox ---------- */
@@ -573,7 +579,9 @@ app.addEventListener('click', e => {
     return send('answer', { answers });
   }
   if (t.classList.contains('copy')) {
-    navigator.clipboard.writeText(/** @type {HTMLElement} */ (t.closest('.code')).dataset.raw).then(() => { t.textContent = '已複製'; }, () => { t.textContent = '複製失敗'; });
+    // 複製改完的程式碼：要刪掉的舊行不算
+    const block = /** @type {HTMLElement} */ (t.closest('.code')), removed = lineList(block.dataset.removed);
+    navigator.clipboard.writeText(block.dataset.raw.split('\n').filter((_, i) => !removed.includes(i + 1)).join('\n')).then(() => { t.textContent = '已複製'; }, () => { t.textContent = '複製失敗'; });
     setTimeout(() => { t.textContent = '複製'; }, 1500);
   }
 });

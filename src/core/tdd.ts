@@ -107,10 +107,13 @@ type CodeColumns = Record<string, string | null>;
 
 export const COMMIT_SHA = /^[0-9a-f]{4,40}$/i;
 
+const isLineList = (lines: unknown) => lines === undefined || (Array.isArray(lines) && lines.every(n => Number.isInteger(n) && n > 0));
+
 function rejectInvalidAddedLines(content: CodeFile | CodeFile[] | undefined) {
   const files = content === undefined ? [] : Array.isArray(content) ? content : [content];
-  const valid = files.every(f => f.added === undefined || (Array.isArray(f.added) && f.added.every(n => Number.isInteger(n) && n > 0)));
-  if (!valid) reject('greenExample／refactorExample 的 added 只能是正整數行號');
+  if (!files.every(f => isLineList(f.added))) reject('greenExample／refactorExample 的 added 只能是正整數行號');
+  if (!files.every(f => isLineList(f.removed))) reject('greenExample／refactorExample 的 removed 只能是正整數行號');
+  if (files.some(f => f.removed?.some(n => f.added?.includes(n)))) reject('同一行不能同時是 added 和 removed');
 }
 
 // 沒有 added 的綠燈範例在頁面上看不出改了哪幾行
@@ -121,7 +124,8 @@ function rejectGreenWithoutAdded(content: CodeFile | CodeFile[] | undefined) {
 
 function codeColumns(prefix: 'test' | 'green', content: CodeFile | CodeFile[] | undefined): CodeColumns {
   if (content === undefined) return {};
-  const files = Array.isArray(content) ? content : null;
+  // 單一檔案的欄位沒有地方放 removed，有刪除行的範例改存成檔案陣列
+  const files = Array.isArray(content) ? content : content.removed?.length ? [content] : null;
   const single: CodeFile = files ? {} : content as CodeFile;
   return {
     [`${prefix}_file`]: single.file ?? null,

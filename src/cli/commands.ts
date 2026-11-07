@@ -27,7 +27,8 @@ function sliceLines(entry: FileRef, text: string): CodeFile {
   const [start, end] = Array.isArray(lines) ? lines : [];
   const valid = Array.isArray(lines) && lines.length === 2 && Number.isInteger(start) && Number.isInteger(end) && start >= 1 && start <= end && end <= all.length;
   if (!valid) reject(`${entry.file} 的 lines 要是 [起, 迄] 兩個行號，且在檔案範圍內`);
-  return { ...code, code: all.slice(start - 1, end).join('\n'), ...(code.added && { added: code.added.map(n => n - start + 1) }) };
+  const shift = (lines: number[]) => lines.map(n => n - start + 1);
+  return { ...code, code: all.slice(start - 1, end).join('\n'), ...(code.added && { added: shift(code.added) }), ...(code.removed && { removed: shift(code.removed) }) };
 }
 
 function readCodeFile(repo: string, entry: FileRef): CodeFile {

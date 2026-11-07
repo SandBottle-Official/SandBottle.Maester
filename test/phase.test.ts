@@ -118,6 +118,16 @@ describe('換階段', () => {
     S.rejected(['phase'], { test: tests[0].id, phase: 'green', greenExample: [{ file: 'a.ts', lang: 'ts', code: 'a', added: [1, markup] }] }, /added/);
   });
 
+  test('範例標出要刪掉的舊行_單一檔案也保留removed', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    const green = { file: 'a.ts', lang: 'ts', code: 'old\nnew', added: [2], removed: [1] };
+    S.ok(['phase'], { test: tests[0].id, phase: 'green', greenExample: green });
+    assert.deepEqual(S.view().state.tdd.greenFiles, [green]);
+    S.rejected(['phase'], { test: tests[0].id, phase: 'green', greenExample: { ...green, removed: [2] } }, /同時/);
+    S.rejected(['phase'], { test: tests[0].id, phase: 'green', greenExample: { ...green, removed: ['x'] } }, /removed/);
+  });
+
   test('只給檔名不給程式碼_從 repo 讀檔存成快照', () => {
     const S = scenario();
     const { tests } = S.inTdd();

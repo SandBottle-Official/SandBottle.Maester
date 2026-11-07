@@ -215,6 +215,12 @@ pre .k{color:var(--tk-k)} pre .ty{color:var(--tk-ty)} pre .f{color:var(--tk-f)} 
 .code pre.shiki{background:transparent!important;padding:12px 0}
 .code pre.shiki .line{display:block;padding:0 16px}
 .code pre.shiki .line.add{background:var(--ins);box-shadow:inset 3px 0 0 var(--green)}
+.code pre.shiki .line.del,pre .ln.del{background:var(--del);box-shadow:inset 3px 0 0 var(--red)}
+/* 行首的 + 與 −：放在左邊留白裡，不影響折行縮排 */
+.code pre .ln,.code pre.shiki .line{position:relative}
+.code pre .ln.add::before,.code pre.shiki .line.add::before{content:"+";color:var(--green)}
+.code pre .ln.del::before,.code pre.shiki .line.del::before{content:"−";color:var(--red)}
+.code pre .ln.add::before,.code pre.shiki .line.add::before,.code pre .ln.del::before,.code pre.shiki .line.del::before{position:absolute;left:5px;top:0;text-indent:0;font-weight:700}
 .node .say{padding:6px 0;border-top:1px solid var(--active)}
 .node .say:first-of-type{border-top:0}
 .node .who{color:var(--faint);font-size:14px}
