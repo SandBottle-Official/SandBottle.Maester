@@ -1,4 +1,4 @@
-/* 紫銀（深色）與白紫（淺色）。兩欄：中間讀（教學、測試清單），右邊做（這一步＋dock）；清單收在左側抽屜 */
+/* 紫銀（深色）與白紫（淺色）。TDD：上面捷運路線、下面全寬的這一步＋dock；臨時動議：中間讀、右邊做；清單收在左側抽屜 */
 :root{
   --ground:#110e1b; --surface:#1a1627; --raised:#231e33; --active:#2d2740;
   --border:#2b2540; --rule:#221d31; --control:#4a4166;
@@ -45,10 +45,6 @@ button{font:inherit;color:inherit}
 .icon:hover{background:var(--active);color:var(--text)}
 .mark{display:flex;align-items:center;gap:7px;font-weight:600;color:var(--muted)}
 h1{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.where-chip{display:inline-flex;align-items:center;gap:10px;height:28px;padding:0 12px;border-radius:14px;background:var(--surface);color:var(--muted);font-size:14px}
-.meter{display:inline-flex;gap:3px}
-.meter i{width:14px;height:4px;border-radius:2px;background:var(--control)}
-.meter i.d{background:var(--green)} .meter i.c{background:var(--phase)}
 .top .right{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--faint);font-size:14px}
 .sync{display:inline-flex;align-items:center;gap:7px;padding:0 6px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
@@ -100,23 +96,9 @@ h1{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;min-wid
 /* 中間：讀的地方 */
 .canvas{background:var(--ground);padding:36px 0 64px;border:1px solid var(--border)}
 .spine{width:min(680px,90%);margin:0 auto}
-.task-head{margin-bottom:18px}
-.task-id{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:14px}
-.task-head h2{font-size:22px;font-weight:600;line-height:1.35;margin-top:4px}
 .tile{flex:none;height:22px;line-height:22px;padding:0 7px;border-radius:5px;font-size:12px;font-weight:500}
 .tile.uc{background:var(--uc-bg);color:var(--uc-ink)}
 .tile.ct{background:var(--ct-bg);color:var(--ct-ink)}
-.tlist{list-style:none;border-top:1px solid var(--border)}
-.row{display:flex;align-items:center;gap:12px;min-height:46px;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--muted)}
-.row:hover{background:var(--surface);color:var(--text)}
-.row.sel{background:var(--surface);color:var(--text);box-shadow:inset 3px 0 0 var(--phase)}
-.row.todo{cursor:default;color:var(--faint)}
-.row.todo:hover{background:none;color:var(--faint)}
-.row .nm{flex:1;min-width:0}
-.st{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--control);display:grid;place-items:center;font-size:11px;line-height:1}
-.st.done{border:0;background:var(--green);color:var(--on-phase,#03130c);font-weight:700}
-.st.now{border:2px solid var(--phase);box-shadow:inset 0 0 0 3px var(--ground),inset 0 0 0 9px var(--phase)}
-.by{flex:none;font-size:12px;color:var(--faint)}
 /* 圓桌畫布沿用卡片 */
 .node{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:18px 18px 16px}
 .node + .node{margin-top:20px}
@@ -205,7 +187,7 @@ pre .k{color:var(--tk-k)} pre .ty{color:var(--tk-ty)} pre .f{color:var(--tk-f)} 
 @media (max-width:1100px){
   .work{grid-template-columns:1fr;height:auto}
   .canvas{display:none}
-  .mark,.where-chip,.sync{display:none}
+  .mark,.sync{display:none}
   .step section{padding:20px}
   .fold{padding:0 20px}
 }
@@ -281,8 +263,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .pt dd{margin-top:6px;font-size:16px;line-height:1.85;color:var(--read)}
 .pt dd code{font-size:14px;background:var(--raised);padding:1px 6px;border-radius:4px}
 .pt dd .code{margin-top:4px}
-.narrow-only{display:none}
-@media (max-width:1100px){ .narrow-only{display:block;margin:0 20px 20px} }
 .lesson pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden}
 :root{color-scheme:dark}
 :root[data-theme="violet"]{color-scheme:light}
@@ -353,3 +333,83 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .usage.borrowed .bar{opacity:.55}
 /* 手機上留用量和倒數，context 讓位 */
 @media (max-width:720px){.usage .bar,.agent-chip .ctx{display:none} .agent-chip{gap:8px;padding:0 10px}}
+
+/* TDD：捷運路線收在頂列中間，這一步全寬在下 */
+.work.tdd{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:calc(100vh - 60px)}
+.agent-slot{display:contents}
+.btn.ref{height:32px;padding:0 12px;font-size:14px;font-weight:500;color:var(--text)}
+.top.with-metro{position:relative;height:60px;gap:14px}
+.top.with-metro::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:1px;background:var(--phase);transition:background .6s}
+.top.with-metro .mark{font-size:0;gap:0}
+.top.with-metro:has([data-feature]) h1{display:none}
+.metro{flex:1;min-width:0;display:flex;align-items:center;gap:14px}
+.metro .empty{padding:0;font-size:14px}
+.metro-task{flex:none;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--control);border-radius:var(--radius-control);background:none;color:var(--muted);font-size:13px;cursor:pointer}
+.metro-task:hover{background:var(--raised);color:var(--text)}
+.metro-task b{color:var(--text);font-weight:600}
+.stations{flex:1;min-width:0;display:flex;list-style:none;height:44px}
+.stations li{flex:1;min-width:26px;position:relative}
+.stations li::before{content:"";position:absolute;top:9px;left:-50%;right:50%;height:3px;background:var(--control)}
+.stations li:first-child::before{display:none}
+.stations li.done::before,.stations li.current::before{background:var(--green)}
+.stations a,.stations .stop{display:flex;justify-content:center;color:var(--faint);text-decoration:none}
+.stn{position:relative;z-index:1;width:20px;height:20px;border-radius:50%;border:3px solid var(--control);background:var(--ground);display:grid;place-items:center;font-size:11px;font-weight:700;line-height:1;color:var(--on-phase);transition:border-color .6s,background .6s,box-shadow .6s}
+.stations .done .stn{background:var(--green);border-color:var(--green)}
+.stations .current .stn{background:var(--phase);border-color:var(--phase);box-shadow:0 0 0 5px var(--phase-field)}
+.stations .sel .stn{outline:2px solid var(--text);outline-offset:3px}
+.stations .end .stn{width:30px;border-radius:6px;border-width:2px;color:var(--muted);font-family:var(--mono)}
+.stations .end.done .stn{color:var(--on-phase)}
+.stations a:hover .stn{border-color:var(--text)}
+/* 站名只標目前與選中的那站，其他站看 title */
+.lbl{position:absolute;top:25px;left:50%;transform:translateX(-50%);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:1.4;color:var(--text);font-weight:500;visibility:hidden}
+.stations .current .lbl,.stations .sel .lbl{visibility:visible}
+.stations .sel:not(.current) .lbl{color:var(--muted)}
+/* 看別站時只留那站的名字，免得跟目前這站的字疊在一起 */
+.stations:has(.sel:not(.current)) .current .lbl{visibility:hidden}
+@media (prefers-reduced-motion:no-preference){.stations .current .stn{animation:station 2s ease-in-out infinite}}
+@keyframes station{50%{box-shadow:0 0 0 9px transparent}}
+.metro .stepper{flex:none;font-size:13px}
+.metro .stepper li + li::before{width:14px;margin:0 6px}
+/* 程式碼兩欄並排：左邊紅燈測試，右邊綠燈範例或重構方向 */
+.code-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.code-cols .col{min-width:0}
+.col-title{display:flex;align-items:center;height:34px;font-size:14px;font-weight:600;color:var(--faint);margin:0}
+/* 紅綠重構分頁：點的顏色就是那個階段的顏色 */
+.phase-tabs{display:flex;gap:6px;padding:0 24px;border-bottom:1px solid var(--rule)}
+.phase-tabs button{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 14px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--faint);font-size:15px;cursor:pointer;--tab:var(--green)}
+.phase-tabs button::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tab)}
+.phase-tabs .pt-red{--tab:var(--red)} .phase-tabs .pt-refactor{--tab:var(--blue)}
+.phase-tabs button:hover{color:var(--text)}
+.phase-tabs button[aria-selected="true"]{color:var(--text);font-weight:600;border-bottom-color:var(--tab)}
+.phase-tabs .now{font-size:12px;font-weight:500;padding:0 6px;border-radius:4px;background:var(--active);color:var(--muted)}
+.tdd .dock{flex-direction:row;align-items:center;gap:14px;padding:10px 14px}
+/* 下方一排：左邊給 AI 的對話框，右邊這一步的動作 */
+.tdd .dock > .composer{order:-1;flex:1;min-width:0;padding-top:0;border-top:0}
+.tdd .dock > .switch{flex:none;margin:0}
+.tdd .dock .acts{flex:none;display:flex;align-items:center;gap:12px}
+.tdd .dock .scope > span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.tdd .dock .primary,.tdd .dock .second{height:40px;padding:0 20px;font-size:15px}
+.tdd .dock .minor{gap:12px}
+.tdd .dock .busy{flex:none;min-height:40px;padding:6px 12px}
+.tdd .dock-note{flex:none;text-align:right}
+.ref-modal .lesson{margin-top:8px;padding-top:0;border-top:0}
+.ref-modal .tabs{border-bottom:0;margin-bottom:0}
+.ref-modal .gwt{margin-top:12px}
+/* 換分頁：內容淡入、往上滑一點 */
+.tab-in{animation:tab-in .22s ease-out}
+@keyframes tab-in{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.top.with-metro::after,.stn{transition:none}.tab-in{animation:none}}
+@media (max-width:1100px){
+  .top.with-metro{height:auto;flex-wrap:wrap;row-gap:2px;padding-block:6px}
+  .metro{order:5;flex-basis:100%}
+  .tdd .dock{flex-wrap:wrap}
+  .tdd .dock > .composer{order:9;flex-basis:100%}
+  .code-cols{grid-template-columns:minmax(0,1fr)}
+  .btn.ref{padding:0 8px}
+}
+/* TDD 這一步：程式碼優先，標題與分頁列壓低 */
+.tdd .step section.head{padding:18px 24px 14px}
+.tdd .step h2{font-size:21px;margin:0 0 4px}
+.tdd .step .lede{font-size:15px;line-height:1.6}
+.tdd .step section.code-cols{padding:8px 24px 20px}
+.tdd .step .code pre{line-height:1.6}

@@ -20,8 +20,9 @@ const RT_STAGES = [['DISCOVER', '探索'], ['ROUND', '圓桌會議'], ['CODEX_RE
 let view = null;
 let connected = false;
 // 使用者在看哪裡：mode 'tdd' | 'rt'；rt 是畫布上的圓桌階段（null 表示目前階段）；task 是畫布上的 Task；step 是右側的測試（null 表示目前這一步）
-const ui = { mode: null, task: null, step: null, rt: null, tab: 'test', draft: {}, unlocked: new Set(), folds: {} };
+const ui = { mode: null, task: null, step: null, rt: null, tab: 'green', draft: {}, unlocked: new Set(), folds: {} };
 ui.roadOpen = false; // draft：還沒送出的裁決 { 題目 id: { value, free } }；roadOpen：左側抽屜
+ui.ref = null; // 參考 modal 開著哪一頁：'lesson'（這一步學什麼）、'spec'（規格）
 
 /* ---------- theme ---------- */
 function setTheme(t) {
@@ -121,7 +122,7 @@ function busyRow(v) {
 const busyBar = v => inFlight(v).length ? '<div class="busybar" aria-hidden="true"></div>' : '';
 // dock：固定在右欄底部，放這一步的動作；處理中時換成狀態列
 // note 只放鎖定原因或送出失敗；流程說明放在按鈕的 title
-const dock = (v, acts, note = '') => `<div class="dock">${busyRow(v) || `<div class="acts">${acts}</div>${note ? `<p class="dock-note">${esc(note)}</p>` : ''}`}</div>`;
+const dock = (v, acts, note = '', extra = '') => `<div class="dock">${extra}${busyRow(v) || `<div class="acts">${acts}</div>${note ? `<p class="dock-note">${esc(note)}</p>` : ''}`}</div>`;
 
 /* ---------- 位置：完成與否看完成紀錄，不看排在目前步驟前後 ---------- */
 function position(v) {
@@ -135,18 +136,17 @@ function position(v) {
 const commitNote = c => !c ? '' : c.missing ? '（commit 已不存在）' : c.inferred ? '（推測）' : '';
 
 /* ---------- pieces ---------- */
-function topBar(v, phase, P) {
+function topBar(v, refs = '', middle = '') {
   const dark = document.documentElement.dataset.theme !== 'violet';
   const title = v.state?.feature || v.plan?.feature || v.name;
-  const task = P?.tasks[P.ti], doneN = task ? task.tests.filter((_, j) => P.status(P.ti, j + 1) === 'done').length : 0;
-  return `<header class="top">
+  return `<header class="top${middle ? ' with-metro' : ''}">
     <button class="icon" data-road-toggle aria-label="${ui.roadOpen ? '關閉清單' : '打開清單'}" aria-expanded="${ui.roadOpen}" title="臨時動議與 Task 清單"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg></button>
     <span class="mark"><img src="brand/mark-${dark ? 'dark' : 'light'}.svg" width="22" height="22" alt="">Maester</span>
     <h1 title="${esc(title)}">${esc(title)}</h1>
     ${v.features?.length > 1 ? `<select class="btn" data-feature aria-label="切換功能">${v.features.map(f => `<option value="${f.id}" ${f.id === v.featureId ? 'selected' : ''}>${esc(f.name)}${f.current ? '（目前）' : f.stage === 'done' ? '（已完成）' : ''}</option>`).join('')}</select>` : ''}
-    ${task && phase ? `<span class="where-chip">Task ${esc(task.id)}<span class="meter" aria-label="${doneN}／${task.tests.length} 完成">${task.tests.map((_, j) => `<i class="${P.status(P.ti, j + 1) === 'done' ? 'd' : j + 1 === +P.cur.test ? 'c' : ''}"></i>`).join('')}</span>${doneN}／${task.tests.length}</span>` : ''}
+    ${middle}
     <div class="right">
-      ${agentChip(v.agent)}${usageButton(v)}
+      ${refs}<span class="agent-slot">${agentChip(v.agent)}</span>${usageButton(v)}
       <span class="sync ${connected ? '' : 'off'}" title="${connected ? '已同步' : 'server 斷線，重連中'}"><span class="dot"></span>${connected ? '已同步' : '重連中'}</span>
       <button class="icon" data-theme-to="${dark ? 'violet' : 'dark'}" aria-label="${dark ? '切換成白紫主題' : '切換成深色主題'}" title="${dark ? '白紫' : '深色'}">${dark
         ? '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>'
@@ -193,6 +193,7 @@ function road(v, P) {
   }).join('');
   return `<div class="scrim" data-road-toggle></div><nav class="drawer" aria-label="臨時動議與 Task 清單">
     <p class="drawer-repo">${esc(v.name)} · <code>${esc(v.branch)}</code></p>
+    ${chain(v, P)}
     ${meetings(v)}
     ${v.roundtable.length || rtState ? `<h2>臨時動議</h2><ul>${rtItems}</ul>` : ''}
     ${P.tasks.length ? `<h2>TDD</h2><ul>${tdd}</ul>` : ''}
@@ -230,26 +231,30 @@ function chain(v, P) {
     <span class="chain-count">${forged}／${links.length} 節</span></div>`;
 }
 
-function tddCanvas(v, P) {
+// 捷運路線：一個測試一站，兩端是前後的 Task；點完成的站看那一步，點目前這站回來
+function metro(v, P) {
   const ti = P.tasks.findIndex(t => +t.id === +ui.task), task = P.tasks[ti];
-  if (!task) return `<main class="panel canvas"><p class="empty">${P.tasks.length ? '計畫裡沒有這個 Task。' : '還沒有 Task 清單。'}</p></main>`;
-  let lesson = '';
-  const rows = task.tests.map((t, j) => {
+  if (!task) return `<nav class="metro"><p class="empty">${P.tasks.length ? '計畫裡沒有這個 Task。' : '還沒有 Task 清單。'}</p></nav>`;
+  const doneOf = i => P.tasks[i].tests.filter((_, j) => P.status(i, j + 1) === 'done').length;
+  const end = i => {
+    const t = P.tasks[i];
+    if (!t) return '';
+    return `<li class="end${doneOf(i) === t.tests.length ? ' done' : ''}"><a href="#" data-task="${esc(t.id)}" title="Task ${esc(t.id)} — ${esc(t.title)}（${doneOf(i)}／${t.tests.length}）"><span class="stn">${esc(t.id)}</span></a></li>`;
+  };
+  const stations = task.tests.map((t, j) => {
     const n = j + 1, st = P.status(ti, n), h = v.history[keyOf(task.id, n)];
     const sel = ui.step ? +ui.step.task === +task.id && +ui.step.test === n : st === 'current';
-    if (sel) lesson = lessonBlock(st === 'done' ? h?.lesson : P.cur?.lesson);
-    const by = st === 'done' && h?.commit?.greenBy ? `<span class="by">${h.commit.greenBy === 'ai' ? 'AI 寫綠燈' : '你寫綠燈'}</span>` : '';
-    const mark = st === 'done' ? '<span class="st done" aria-label="完成">✓</span>' : st === 'current' ? '<span class="st now" aria-label="進行中"></span>' : '<span class="st" aria-label="還沒開始"></span>';
-    const attrs = st === 'todo' ? 'class="row todo"' : `class="row${sel ? ' sel' : ''}" data-step="${esc(task.id)}:${n}" tabindex="0" role="button"`;
-    return `<li ${attrs}>${mark}<span class="nm">${esc(t.name)}</span>${by}</li>`;
+    const by = st === 'done' && h?.commit?.greenBy ? `（${h.commit.greenBy === 'ai' ? 'AI 寫綠燈' : '你寫綠燈'}）` : '';
+    const inner = `<span class="stn">${st === 'done' ? '✓' : ''}</span><span class="lbl">${esc(t.name)}</span>`;
+    return `<li class="${st}${sel ? ' sel' : ''}">${st === 'todo' ? `<span class="stop" title="${esc(t.name)}">${inner}</span>`
+      : `<a href="#" data-step="${esc(task.id)}:${n}" title="${esc(t.name + by)}" ${st === 'current' ? 'aria-current="step"' : ''}>${inner}</a>`}</li>`;
   }).join('');
-  const layer = task.layer ? `<span class="tile ${LAYER[task.layer] || 'uc'}">${esc(task.layer)}</span>` : '';
-  return `<main class="panel canvas" aria-label="畫布"><div class="spine">
-    ${chain(v, P)}
-    <header class="task-head"><p class="task-id">Task ${esc(task.id)} ${layer}</p><h2>${esc(task.title)}</h2></header>
-    ${rows ? `<ol class="tlist">${rows}</ol>` : '<p class="empty">這個 Task 還沒有列出測試</p>'}
-    ${lesson}
-  </div></main>`;
+  // Task 標題與層級收進按鈕的 title；點了打開清單看全部 Task
+  return `<nav class="metro" aria-label="Task ${esc(task.id)} 的測試">
+    <button class="metro-task" data-road-toggle title="Task ${esc(task.id)} — ${esc(task.title)}${task.layer ? `（${esc(task.layer)}）` : ''}">Task ${esc(task.id)}<b>${doneOf(ti)}／${task.tests.length}</b></button>
+    <ol class="stations">${end(ti - 1)}${stations || '<li class="todo"><span class="stop"><span class="lbl">這個 Task 還沒有列出測試</span></span></li>'}${end(ti + 1)}</ol>
+    ${P.cur ? stepper(P.cur.phase, v.redBy) : ''}
+  </nav>`;
 }
 
 // 行內 `code` 轉成 <code>，其餘照字面顯示
@@ -265,9 +270,26 @@ function lessonBlock(l, cls = '') {
 }
 
 const latest = (v, kind) => v.roundtable.filter(f => f.kind === kind).at(-1);
+const ruleOf = (v, ruleId) => ruleId ? latest(v, 'decisionTable')?.rules?.find(r => r.id === ruleId && r.gwt) : null;
+const gwtList = r => `<dl class="gwt"><dt>Given</dt><dd>${esc(r.gwt.given)}</dd><dt>When</dt><dd>${esc(r.gwt.when)}</dd><dt>Then</dt><dd>${esc(r.gwt.then)}</dd></dl>`;
 function gwt(v, ruleId) {
-  const r = latest(v, 'decisionTable')?.rules?.find(r => r.id === ruleId);
-  return r?.gwt ? `<details class="fold" data-fold="gwt" ${ui.folds.gwt ? 'open' : ''}><summary>對應的規格<span class="sum">${esc(r.id)}</span></summary><dl class="gwt"><dt>Given</dt><dd>${esc(r.gwt.given)}</dd><dt>When</dt><dd>${esc(r.gwt.when)}</dd><dt>Then</dt><dd>${esc(r.gwt.then)}</dd></dl></details>` : '';
+  const r = ruleOf(v, ruleId);
+  return r ? `<details class="fold" data-fold="gwt" ${ui.folds.gwt ? 'open' : ''}><summary>對應的規格<span class="sum">${esc(r.id)}</span></summary>${gwtList(r)}</details>` : '';
+}
+// 原本左欄的「這一步學什麼」與規格：頂列按鈕打開的 modal
+const refTab = (k, n) => `<button role="tab" data-ref="${k}" aria-selected="${ui.ref === k}">${n}</button>`;
+function refButtons(lesson, rule) {
+  return (lesson?.topics?.length ? '<button class="btn ref" data-ref="lesson">這一步學什麼</button>' : '')
+    + (rule ? `<button class="btn ref" data-ref="spec">規格 ${esc(rule.id)}</button>` : '');
+}
+function refModal(lesson, rule) {
+  const has = { lesson: !!lesson?.topics?.length, spec: !!rule };
+  const page = has[ui.ref] ? ui.ref : has.lesson ? 'lesson' : has.spec ? 'spec' : null;
+  if (!ui.ref || !page) return '';
+  ui.ref = page;
+  return `<div class="scrim" data-close-ref></div><div class="modal ref-modal" role="dialog" aria-modal="true" aria-label="這一步的參考">
+    <div class="modal-head"><div class="tabs" role="tablist">${has.lesson ? refTab('lesson', '這一步學什麼') : ''}${has.spec ? refTab('spec', `規格 ${esc(rule.id)}`) : ''}</div><button class="icon" data-close-ref aria-label="關閉">✕</button></div>
+    ${page === 'lesson' ? lessonBlock(lesson) : `<p class="note">${esc(rule.id)} · ${esc(rule.action)}</p>${gwtList(rule)}`}</div>`;
 }
 // 一個檔案一個區塊，檔名放在區塊標題列
 const fileBlocks = (list = [], fallback) => (list.length > 1 ? `<p class="files-count">${list.length} 個檔案</p>` : '')
@@ -288,14 +310,19 @@ function refactorBlock(text) {
   return `<div class="refactor-block">${label ? `<h4>${label}</h4>` : ''}${html}</div>`;
 }
 const refactorBlocks = text => (text || '').split(/\n\s*\n|\n(?=\s*(?:產品碼|測試碼)\s*[：:])/).map(t => t.trim()).filter(Boolean).map(refactorBlock).join('');
-function codeTabs(s) {
-  return `<section>
-    <div class="tabs" role="tablist">${[['test', '紅燈測試'], ['impl', '綠燈範例'], ['refactor', '重構方向']].map(([k, n]) => `<button role="tab" data-tab="${k}" aria-selected="${ui.tab === k}">${n}</button>`).join('')}</div>
-    ${ui.tab === 'test' ? (fileBlocks(s.testFiles, '測試') + (s.failure ? codeBlock('執行結果', { code: s.failure, lang: 'text' }) : '')) || '<p class="note">沒有測試碼。</p>' : ''}
-    ${ui.tab === 'impl' ? fileBlocks(s.greenFiles, '綠燈範例') || '<p class="note">沒有綠燈範例。</p>' : ''}
-    ${ui.tab === 'refactor' ? (refactorBlocks(s.refactor) + fileBlocks(s.refactorFiles, '重構範例')) || '<p class="note">沒有重構方向。</p>' : ''}
-    ${s.hint ? `<div class="decision"><p class="q">提示</p><p style="white-space:pre-wrap">${esc(s.hint)}</p></div>` : ''}
-  </section>${lessonBlock(s.lesson, 'narrow-only')}`;
+// 紅、綠、重構各一個分頁，每頁兩欄並排；current 是這一步目前的階段（看過往紀錄時沒有）
+const PHASE_TABS = [['red', '紅燈'], ['green', '綠燈'], ['refactor', '重構']];
+function codeTabs(s, current = null) {
+  const tab = PHASE_TABS.some(([k]) => k === ui.tab) ? ui.tab : current || 'green';
+  const col = (title, body, empty) => `<div class="col"><h3 class="col-title">${title}</h3>${body || `<p class="note">${empty}</p>`}</div>`;
+  const tests = col('紅燈測試', fileBlocks(s.testFiles, '測試'), '沒有測試碼。');
+  const pane = {
+    red: tests + col('執行結果', s.failure ? codeBlock('執行結果', { code: s.failure, lang: 'text' }) : '', '沒有執行結果。'),
+    green: tests + col('綠燈範例', fileBlocks(s.greenFiles, '綠燈範例'), '沒有綠燈範例。'),
+    refactor: col('重構方向', refactorBlocks(s.refactor), '沒有重構方向。') + col('重構範例', fileBlocks(s.refactorFiles, '重構範例'), '沒有重構範例。'),
+  }[tab];
+  return `<div class="phase-tabs" role="tablist" aria-label="紅綠重構">${PHASE_TABS.map(([k, n]) => `<button role="tab" class="pt-${k}" data-tab="${k}" aria-selected="${tab === k}">${n}${k === current ? '<span class="now">目前</span>' : ''}</button>`).join('')}</div>
+  <section class="code-cols" role="tabpanel">${pane}</section>${s.hint ? `<section><div class="decision"><p class="q">提示</p><p style="white-space:pre-wrap">${esc(s.hint)}</p></div></section>` : ''}`;
 }
 const files = list => list.length ? `<ul class="files">${list.map(c => `<li><code>${esc(c.file)}</code><span class="mono"><span class="plus">+${c.add}</span> <span class="minus">−${c.del}</span></span></li>`).join('')}</ul>` : '<p class="note">沒有改動。</p>';
 
@@ -363,16 +390,15 @@ function tddStep(v, P) {
   const openDecisions = (v.state?.roundtable?.decisions || []).filter(d => d.answer == null);
   return `<aside class="panel step" aria-label="目前這一步">${busyBar(v)}
     <section class="head">
-      ${stepper(ph, v.redBy)}${redByToggle(v)}
       <h2>${esc(s.title || P.tasks[P.ti]?.tests[s.test - 1]?.name || '')}</h2>
       ${s.story ? `<p class="lede">${esc(s.story)}</p>` : ''}
     </section>
     ${problemCard(s.problem)}
     ${openDecisions.length && !v.readonly ? decisionCards(openDecisions, lock) : ''}
-    ${codeTabs(s)}
+    ${codeTabs(s, ph)}
     ${s.ruleRef ? gwt(v, s.ruleRef) : ''}
     <details class="fold" data-fold="changes" ${ui.folds.changes ? 'open' : ''}><summary>這一輪你改了<span class="sum">${changed.length ? `${changed.length} 個檔案` : '還沒有'}</span></summary>${files(changed)}<p class="note">只算產品碼；測試碼不算在內。</p></details>
-  </aside>${dock(v, acts, note)}`;
+  </aside>${dock(v, acts, note, redByToggle(v))}`;
 }
 
 const dtTable = dt => `<div style="overflow-x:auto"><table class="dt"><tr><th>Rule</th>${(dt.conditions || []).map(c => `<th>${esc(c)}</th>`).join('')}<th>結果</th></tr>
@@ -419,6 +445,9 @@ function rtStep(v) {
     live ? lock || (open.length ? '' : '議會正在討論') : '')}`;
 }
 
+// 換了分頁或換了一步才播分頁的進場動畫；SSE 重畫同一頁不重播
+let lastTabKey;
+
 /* ---------- render ---------- */
 function render() {
   if (!REPO) return renderProjects();
@@ -430,7 +459,7 @@ function render() {
   const stepKey = `${v.featureId}|${v.state?.stage}|${v.state?.roundtable?.state}|${P.cur ? `${P.cur.testId}:${P.cur.phase}:${P.cur.problem?.title ?? ''}` : ''}`;
   if (stepKey !== lastStep) {
     if (lastStep !== undefined) Object.assign(ui, { mode: null, task: null, step: null, rt: null });
-    ui.tab = PHASE_TAB[P.cur?.phase] || 'test';
+    ui.tab = P.cur?.phase || 'green';
     lastStep = stepKey;
   }
   ui.mode ??= v.state?.stage === 'roundtable' ? 'rt' : v.state?.stage === 'tdd' || P.tasks.length ? 'tdd' : v.roundtable.length ? 'rt' : null;
@@ -441,20 +470,27 @@ function render() {
   const err = v.errors.map(e => `<p class="banner" style="margin:0 8px 8px">${esc(e)}</p>`).join('') ;
   if (!ui.mode) {
     queueMicrotask(placeMeetingComposer);
-    app.innerHTML = topBar(v, null, P) + err + `<div class="empty"><h2>開一場新會議</h2><p>寫下要討論的功能，AI 會召開臨時動議；過往會議在左上角的清單裡。</p>${newMeetingButton()}</div>` + (ui.meetingOpen ? meetingModal() : '');
+    app.innerHTML = topBar(v) + err + `<div class="empty"><h2>開一場新會議</h2><p>寫下要討論的功能，AI 會召開臨時動議；過往會議在左上角的清單裡。</p>${newMeetingButton()}</div>` + (ui.meetingOpen ? meetingModal() : '');
     return;
   }
   const viewing = ui.step && P.status(P.tasks.findIndex(t => +t.id === +ui.step.task), ui.step.test) === 'done';
   const side = panel => `<div class="side">${panel}</div>`;
+  const shown = ui.mode !== 'tdd' ? null : viewing ? v.history[keyOf(ui.step.task, ui.step.test)] : P.cur;
+  const lesson = shown?.lesson, rule = ruleOf(v, shown?.ruleRef);
   const body = ui.mode === 'rt' ? rtCanvas(v) + side(rtStep(v))
-    : tddCanvas(v, P) + side(viewing ? historyStep(v, P, ui.step.task, ui.step.test) : tddStep(v, P));
+    : side(viewing ? historyStep(v, P, ui.step.task, ui.step.test) : tddStep(v, P));
+  const tabKey = ui.mode === 'tdd' ? `${v.featureId}|${viewing ? `${ui.step.task}:${ui.step.test}` : P.cur?.testId}|${ui.tab}` : null;
+  const animate = !!tabKey && lastTabKey !== undefined && tabKey !== lastTabKey;
+  lastTabKey = tabKey;
   // 同一個畫面重畫（選裁決、切換範例分頁、SSE 更新）時保留各 panel 的捲動位置，換畫面才回到頂端
-  const ctx = `${ui.mode}|${ui.rt}|${ui.task}|${ui.step?.task}:${ui.step?.test}`;
-  const SCROLLERS = '.work .panel, .drawer';
+  const ctx = `${ui.mode}|${ui.rt}|${ui.task}|${ui.step?.task}:${ui.step?.test}|${ui.ref}`;
+  const SCROLLERS = '.work .panel, .drawer, .ref-modal';
   const scrolls = ctx === lastCtx ? [...app.querySelectorAll(SCROLLERS)].map(p => p.scrollTop) : [];
   lastCtx = ctx;
   const typing = composer?.el.contains(document.activeElement);
-  app.innerHTML = topBar(v, phase, P) + err + `<div class="work">${body}</div>` + (ui.roadOpen ? road(v, P) : '') + (ui.meetingOpen ? meetingModal() : '');
+  app.innerHTML = topBar(v, ui.mode === 'tdd' ? refButtons(lesson, rule) : '', ui.mode === 'tdd' ? metro(v, P) : '') + err + `<div class="work${ui.mode === 'tdd' ? ' tdd' : ''}">${body}</div>`
+    + (ui.roadOpen ? road(v, P) : '') + (ui.mode === 'tdd' ? refModal(lesson, rule) : '') + (ui.meetingOpen ? meetingModal() : '');
+  if (animate) app.querySelector('.code-cols')?.classList.add('tab-in');
   app.querySelectorAll(SCROLLERS).forEach((p, i) => { if (scrolls[i]) p.scrollTop = scrolls[i]; });
   // 輸入框是同一個節點搬回來，內容與 vim 狀態都在；搬動會失焦，所以補回焦點
   if (composer && !v.readonly) { app.querySelector('.dock')?.append(composer.el); if (typing) composer.focus(); }
@@ -473,7 +509,6 @@ function placeMeetingComposer() {
 const openMeeting = open => { Object.assign(ui, { meetingOpen: open, meetingFocus: open, roadOpen: false }); render(); };
 /** @type {string | null | undefined} */
 let lastStep;
-const PHASE_TAB = { red: 'test', green: 'test', refactor: 'refactor' };
 
 async function renderProjects() {
   const list = await (await fetch(`/api/projects?key=${encodeURIComponent(KEY)}`)).json();
@@ -484,7 +519,7 @@ async function renderProjects() {
 app.addEventListener('click', e => {
   const target = /** @type {HTMLElement} */ (e.target);
   if (target.matches('[data-close-meeting]')) return openMeeting(false);
-  if (target.matches('.scrim')) { ui.roadOpen = false; return render(); }
+  if (target.matches('.scrim')) { ui.roadOpen = false; ui.ref = null; return render(); }
   const a = /** @type {HTMLElement | null} */ (target.closest('[data-task],[data-rt],[data-step]'));
   if (a) {
     e.preventDefault();
@@ -494,13 +529,15 @@ app.addEventListener('click', e => {
     if (a.dataset.step) {
       const [task, test] = a.dataset.step.split(':'), cur = view.state?.tdd;
       ui.step = cur && +cur.task === +task && +cur.test === +test ? null : { task, test: +test };
-      ui.tab = 'test';
+      ui.tab = ui.step ? 'green' : cur.phase;
     }
     return render();
   }
   const t = target.closest('button');
   if (!t || t.disabled) return;
   if ('roadToggle' in t.dataset) { ui.roadOpen = !ui.roadOpen; return render(); }
+  if (t.dataset.ref) { ui.ref = t.dataset.ref; return render(); }
+  if ('closeRef' in t.dataset) { ui.ref = null; return render(); }
   if (t.dataset.unlock) {
     const ids = t.dataset.unlock.split(',');
     ids.forEach(id => ui.unlocked.add(id));
@@ -562,6 +599,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   // vim 用 Esc 回一般模式，游標在輸入框裡時不關 modal
   if (ui.meetingOpen && !meetingComposer?.el.contains(document.activeElement)) openMeeting(false);
+  else if (ui.ref) { ui.ref = null; render(); }
   else if (ui.roadOpen) { ui.roadOpen = false; render(); }
 });
 app.addEventListener('toggle', e => {
@@ -579,10 +617,8 @@ else if (REPO) {
   // AI 每用一次工具就回報用量：只有用量變時只換那顆 chip，不整頁重畫
   const withoutAgent = v => JSON.stringify({ ...v, agent: null });
   const patchAgent = () => {
-    const right = app.querySelector('header.top .right');
-    if (!right) return render();
-    right.querySelector('.agent-chip')?.remove();
-    right.insertAdjacentHTML('afterbegin', agentChip(view.agent));
+    const slot = app.querySelector('header.top .agent-slot');
+    if (slot) slot.innerHTML = agentChip(view.agent); else render();
   };
   // 使用者正在打字或選取文字時先不重畫，免得裁決的自由填寫或選取被洗掉；放開選取後補畫
   let deferred = false;
