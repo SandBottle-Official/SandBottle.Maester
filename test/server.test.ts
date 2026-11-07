@@ -51,6 +51,9 @@ describe('server 與端到端', () => {
     assert.equal(stale.status, 409);
     assert.match((await stale.json()).error, /過期/);
     assert.equal((await fetch(`http://127.0.0.1:${port}/api/event?repo=${repo}`, { method: 'POST', body: '{}' })).status, 403);
+    const unlock = (headers: Record<string, string>) => fetch(`http://127.0.0.1:${port}/api/unlock?repo=${repo}`, { method: 'POST', headers, body: JSON.stringify({ ids: [] }) });
+    assert.equal((await unlock({})).status, 403);
+    assert.equal((await unlock({ [KEY_HEADER]: key })).status, 200);
 
     const redBy = (value: string, headers: Record<string, string> = { [KEY_HEADER]: key }) =>
       fetch(`http://127.0.0.1:${port}/api/red-by?repo=${repo}`, { method: 'POST', headers, body: JSON.stringify({ value }) });

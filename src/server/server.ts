@@ -190,6 +190,10 @@ const server = http.createServer((req, res) => {
       if (req.method !== 'POST') break;
       if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
       return isKnownRepo(repo) ? receiveJson(req, res, repo, (store, input) => store.setRedBy(input?.value)) : send(res, 404, { error: 'unknown repo' });
+    case '/api/unlock':
+      if (req.method !== 'POST') break;
+      if (!isTrustedEventRequest(req)) return send(res, 403, { error: 'forbidden' });
+      return isKnownRepo(repo) ? receiveJson(req, res, repo, (store, input) => store.unlock(input?.ids)) : send(res, 404, { error: 'unknown repo' });
     case '/api/start':
     case '/api/resume':
       if (req.method !== 'POST') break;

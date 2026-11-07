@@ -105,6 +105,20 @@ describe('事件', () => {
     assert.equal(S.view().processing.length, 0);
   });
 
+  test('解除鎖定_待處理與處理中的事件都結束且新session不重送', () => {
+    const S = scenario();
+    S.inTdd();
+    const claimed = submit(S, 'help_green').id, waiting = submit(S, 'hint').id;
+    S.ok(['wait']);
+    const db = S.db();
+    try {
+      assert.deepEqual(db.unlock([claimed, waiting, 'nope']), { unlocked: 2 });
+      assert.deepEqual(db.requeueProcessing(), { requeued: 0 });
+    } finally { db.close(); }
+    assert.deepEqual([S.view().pending.length, S.view().processing.length], [0, 0]);
+    S.ok(['done', claimed]);
+  });
+
   test('有未完成事件_session開始時提醒AI接手', () => {
     const S = scenario();
     S.inTdd();

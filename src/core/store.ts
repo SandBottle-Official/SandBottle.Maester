@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { adapt, readAdaptations } from './adaptations.ts';
 import { Db } from './db.ts';
 import { reject } from './errors.ts';
-import { approveDesign, claimNextEvent, markEventDone, readEvents, requeueProcessing, submitEvent } from './events.ts';
+import { approveDesign, claimNextEvent, markEventDone, readEvents, requeueProcessing, submitEvent, unlockEvents } from './events.ts';
 import { currentFeature, featureById, listFeatures, redBy, setRedBy, startFeature, stop, stoppedAt, switchFeature } from './features.ts';
 import { importFeature } from './import-feature.ts';
 import { dbPath, hasLegacyJson } from './paths.ts';
@@ -72,6 +72,7 @@ export class Store extends Db {
   claim() { return claimNextEvent(this); }
   requeueProcessing() { return requeueProcessing(this); }
   done(id: string) { return markEventDone(this, id); }
+  unlock(ids: unknown) { return unlockEvents(this, ids); }
   events(featureId: number, status: EventRow['status']) { return readEvents(this, featureId, status); }
 
   importFeature(data: ImportFeatureInput) { return importFeature(this, data); }

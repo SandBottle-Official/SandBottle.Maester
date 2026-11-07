@@ -501,7 +501,12 @@ app.addEventListener('click', e => {
   const t = target.closest('button');
   if (!t || t.disabled) return;
   if ('roadToggle' in t.dataset) { ui.roadOpen = !ui.roadOpen; return render(); }
-  if (t.dataset.unlock) { t.dataset.unlock.split(',').forEach(id => ui.unlocked.add(id)); return render(); }
+  if (t.dataset.unlock) {
+    const ids = t.dataset.unlock.split(',');
+    ids.forEach(id => ui.unlocked.add(id));
+    render();
+    return fetch(`/api/unlock?repo=${encodeURIComponent(REPO)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-maester-key': KEY }, body: JSON.stringify({ ids }) }).catch(() => {});
+  }
   if (t.dataset.themeTo) return setTheme(t.dataset.themeTo);
   if (t.dataset.tab) { ui.tab = t.dataset.tab; return render(); }
   if ('back' in t.dataset) { Object.assign(ui, { mode: null, task: null, step: null }); return render(); }

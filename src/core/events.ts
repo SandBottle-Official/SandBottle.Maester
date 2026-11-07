@@ -91,6 +91,13 @@ export function markEventDone(db: Db, id: string) {
   });
 }
 
+// 網頁的「解除鎖定」：AI 中斷時把卡住的事件結束掉，不然新 session 會把它重送一次，跟使用者重按的那筆重複做
+export function unlockEvents(db: Db, ids: unknown) {
+  const list = Array.isArray(ids) ? ids.map(String) : reject('需要事件 id 清單');
+  const placeholders = list.map(() => '?').join(',') || "''";
+  return { unlocked: Number(db.run(`UPDATE events SET status = 'done' WHERE id IN (${placeholders}) AND status IN ('pending', 'processing')`, ...list).changes) };
+}
+
 export function readEvents(db: Db, featureId: number, status: EventRow['status']): EventOut[] {
   return db.all<EventRow>('SELECT * FROM events WHERE feature_id = ? AND status = ? ORDER BY ts, rowid', featureId, status).map(e => toEventOut(db, e));
 }
