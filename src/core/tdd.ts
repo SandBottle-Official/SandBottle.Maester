@@ -163,7 +163,9 @@ export function completeStep(db: Db, { test, sha }: CompleteInput, commit: ShaIn
   return db.transaction(() => {
     const bound = db.get<{ test_id: number; name: string }>(`SELECT s.test_id, t.name FROM steps s JOIN tests t ON t.id = s.test_id
       WHERE s.binding = 'explicit' AND s.commit_sha LIKE ? || '%'`, String(sha));
-    if (bound) return { already: true, test: bound.test_id, name: bound.name };
+    if (bound?.test_id === Number(test)) return { already: true, test: bound.test_id, name: bound.name };
+    // 一個 commit 只綁一步；不明講的話 AI 會以為完成了，步驟卻停在原地
+    if (bound) reject(`${sha} 已經綁在測試 ${bound.test_id}「${bound.name}」；每個測試要有自己的 commit，這一步沒有改動就用 git commit --allow-empty`);
     const feature = writableFeature(db);
     if (!commit.full || !commit.ancestor) reject(`${sha} 不是 HEAD 或 HEAD 的祖先`);
     const step = stepAt(db, feature, test);

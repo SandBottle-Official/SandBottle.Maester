@@ -44,6 +44,16 @@ describe('完成步驟與綁定', () => {
     assert.equal(S.snapshot(), before);
   });
 
+  test('R21a 下一個測試綁別的測試用過的commit_拒絕並提示empty_commit', () => {
+    const S = scenario();
+    const { tests } = S.inTdd();
+    const { sha } = S.finish(tests[0].id);
+    S.toPhase(tests[1].id, 'green');
+    const before = S.snapshot();
+    S.rejected(['complete', String(tests[1].id), sha], undefined, /ConfigureServices.*allow-empty/);
+    assert.equal(S.snapshot(), before);
+  });
+
   test('R22 sha不是HEAD也不是祖先_拒絕', () => {
     const S = scenario();
     const { tests } = S.inTdd();
