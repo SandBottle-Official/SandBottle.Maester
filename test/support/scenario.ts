@@ -79,10 +79,18 @@ export function scenario() {
   const start = (name = Fixtures.客戶訂閱): number => ok(['start'], { name }).feature;
   const plan = (feature: number, tasks?: PlannedTask[]): PlannedTest[] => ok(['plan'], planInput(feature, tasks)).tests;
   const toPhase = (test: number, ...phases: string[]) => phases.forEach(phase => ok(['phase'], { test, phase }));
+  // 走完 Hard Gate：有 Decision Table、最終設計、使用者確定，停在 TASK_BREAKDOWN
+  const approve = () => {
+    ok(['doc'], { kind: 'decisionTable', conditions: ['門市狀態'], rules: [{ id: 'R1', values: ['啟用'], action: '開通' }] });
+    ok(['design'], { summary: '方案 A' });
+    ok(['approve']);
+    ok(['stage'], { state: 'TASK_BREAKDOWN', note: '拆 Task' });
+  };
   const S = {
-    ...r, run, ok, rejected, start, plan, planInput, toPhase,
+    ...r, run, ok, rejected, start, plan, planInput, toPhase, approve,
     inTdd(name?: string) {
       const feature = start(name), tests = plan(feature);
+      approve();
       ok(['tdd']);
       return { feature, tests };
     },

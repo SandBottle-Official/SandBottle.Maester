@@ -44,6 +44,7 @@ A finished feature rejects every write. When a repo has old `state.json`/`plan.j
 | `maester doc` | A council document; append-only; the page shows the latest document of each kind (see below) |
 | `maester ask` | `{ "code": "d1", "question": "…？", "options": [{ "label": "回傳既有結果", "by": "Fowler" }], "freeText": true }` |
 | `maester answer` | `{ "code": "d1", "value": "…" }`; written by the AI when the user answers in the terminal; the latest answer wins |
+| `maester approve` | No input; run only when the user explicitly approves the design in the terminal (the page's 「設計確定」 button records the same approval) |
 | `maester design` | Final design `{ "summary": "…", "decisions": [{ "topic": "…", "decision": "…", "reason": "…" }], "rejected": ["…"], "risks": ["…"], "followups": ["…"] }` |
 
 Document kinds for `doc`:
@@ -63,7 +64,7 @@ Document kinds for `doc`:
 | Command | Input | Rule |
 |---|---|---|
 | `maester plan` | `{ "feature": 1, "tasks": [{ "code": "02", "title": "…", "layer": "use case", "tests": [{ "id": 17, "name": "R10_…", "rule": "R10" }, { "name": "新的測試" }] }] }` | Replaces the whole plan; existing tests carry their `id` (see `show`), new ones do not. Tests up to and including the current step keep their id, name and order |
-| `maester tdd` | — | Only once, from the council stage; the current step becomes the first test 🔴 |
+| `maester tdd` | — | Only once, from the council stage at `TASK_BREAKDOWN`, after the user approved the design (page or `maester approve`), every decision is answered and a `decisionTable` and `design` document exist; the current step becomes the first test 🔴 |
 | `maester phase` | `{ "test": 17, "phase": "green", "title", "story", "layer", "ruleRef", "testCode": { "file", "lang", "code" }, "failure", "greenExample": { "file", "lang", "code", "added": [3, 4] }, "refactor", "refactorExample": [{ "file", "lang", "code", "added" }], "hint", "problem": { "title", "why", "fix", "output" } }` | Only red→green→refactor, or the same phase to update content; omitted fields keep their value, except `problem`, which a phase change clears |
 | `maester complete <test id> <sha>` | — | After the refactor commit (or a skipped refactor): binds explicitly, archives the step, moves to the next test 🔴 (after the last one the feature is done). The sha must be HEAD or an ancestor; red cannot complete; repeating the same sha does nothing |
 

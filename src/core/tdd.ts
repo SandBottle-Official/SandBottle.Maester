@@ -18,10 +18,22 @@ function openRedStep(db: Db, featureId: number, testId: number) {
   db.run("INSERT INTO steps(feature_id, test_id, phase, updated_at) VALUES (?, ?, 'red', ?)", featureId, testId, now());
 }
 
+// Hard Gate：設計沒確定、裁決沒答完、沒有 Decision Table 與最終設計，就不能拆完 Task 進 TDD
+function rejectUnfinishedCouncil(db: Db, feature: FeatureRow) {
+  if (feature.rt_state !== 'TASK_BREAKDOWN') reject(`臨時動議還在 ${feature.rt_state}，要到 TASK_BREAKDOWN 才能開始 TDD`);
+  if (!db.get("SELECT 1 FROM events WHERE feature_id = ? AND type = 'approve_design'", feature.id)) reject('使用者還沒確定設計（網頁按「設計確定」或 maester approve）');
+  const open = db.all<{ code: string }>('SELECT code FROM decisions WHERE feature_id = ? AND answer IS NULL', feature.id).map(d => d.code);
+  if (open.length) reject(`還有裁決沒回答：${open.join('、')}`);
+  const has = (kind: string) => !!db.get('SELECT 1 FROM rt_docs WHERE feature_id = ? AND kind = ?', feature.id, kind);
+  if (!has('decisionTable')) reject('還沒有 Decision Table（maester doc kind: decisionTable）');
+  if (!has('design')) reject('還沒有最終設計（maester design）');
+}
+
 export function startTdd(db: Db) {
   return db.transaction(() => {
     const feature = writableFeature(db);
     if (feature.stage !== 'roundtable') reject('已經在 TDD 了');
+    rejectUnfinishedCouncil(db, feature);
     const first = orderedTests(db, feature.id)[0] ?? reject('計畫還沒有測試，先寫入計畫');
     openRedStep(db, feature.id, first.id);
     db.run("UPDATE features SET stage = 'tdd' WHERE id = ?", feature.id);

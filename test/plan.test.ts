@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { Fixtures } from './support/fixtures.ts';
-import { scenario } from './support/scenario.ts';
+import { scenario, submit } from './support/scenario.ts';
 
 describe('開始 TDD 與寫入計畫', () => {
   test('R13 圓桌階段且計畫有測試時開始TDD_目前步驟是第一個測試紅燈', () => {
@@ -15,7 +15,35 @@ describe('開始 TDD 與寫入計畫', () => {
   test('R14 計畫沒有測試時開始TDD_拒絕', () => {
     const S = scenario();
     S.start();
+    S.approve();
     S.rejected(['tdd'], undefined, /還沒有測試/);
+  });
+
+  test('R14b 臨時動議沒走完就開始TDD_依序拒絕並說明缺什麼', () => {
+    const S = scenario();
+    S.plan(S.start());
+    S.rejected(['tdd'], undefined, /DISCOVER/);
+    S.ok(['stage'], { state: 'TASK_BREAKDOWN', note: '想跳過' });
+    S.rejected(['tdd'], undefined, /還沒確定設計/);
+    S.ok(['approve']);
+    S.ok(['ask'], { code: 'd1', question: '重複申請怎麼辦？' });
+    S.rejected(['tdd'], undefined, /d1/);
+    S.ok(['answer'], { code: 'd1', value: '回傳既有' });
+    S.rejected(['tdd'], undefined, /Decision Table/);
+    S.ok(['doc'], { kind: 'decisionTable', conditions: ['門市狀態'], rules: [{ id: 'R1', values: ['啟用'], action: '開通' }] });
+    S.rejected(['tdd'], undefined, /最終設計/);
+    S.ok(['design'], { summary: '方案 A' });
+    S.ok(['tdd']);
+  });
+
+  test('R14c 網頁按設計確定也算核准', () => {
+    const S = scenario();
+    S.plan(S.start());
+    S.ok(['doc'], { kind: 'decisionTable', conditions: ['門市狀態'], rules: [{ id: 'R1', values: ['啟用'], action: '開通' }] });
+    S.ok(['design'], { summary: '方案 A' });
+    S.ok(['stage'], { state: 'TASK_BREAKDOWN', note: '拆 Task' });
+    submit(S, 'approve_design');
+    S.ok(['tdd']);
   });
 
   test('R14a 已在TDD再開始_拒絕', () => {

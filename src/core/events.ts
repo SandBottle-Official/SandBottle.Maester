@@ -57,6 +57,17 @@ function toEventOut(db: Db, event: EventRow): EventOut {
     ctx: { stage: event.ctx_stage, test: event.ctx_test_id, phase: event.ctx_phase } };
 }
 
+// 使用者在 terminal 說「設計確定」：留一筆已處理的 approve_design，和網頁按鈕一樣算數
+export function approveDesign(db: Db) {
+  return db.transaction(() => {
+    const feature = currentFeature(db) ?? reject('還沒有功能，先執行 maester start');
+    if (feature.stage !== 'roundtable') reject('只有臨時動議階段能核准設計');
+    const id = newEventId();
+    db.run("INSERT INTO events(id, feature_id, ts, type, status, ctx_stage) VALUES (?, ?, ?, 'approve_design', 'done', 'roundtable')", id, feature.id, now());
+    return { id };
+  });
+}
+
 export function claimNextEvent(db: Db): EventOut | null {
   const feature = currentFeature(db);
   if (!feature) return null;

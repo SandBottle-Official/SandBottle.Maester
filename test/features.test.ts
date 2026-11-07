@@ -9,6 +9,7 @@ import { COMMAND, DATA_DIR, DB_FILE } from './support/system.ts';
 function finishedSingleTestFeature(S: Scenario) {
   const feature = S.start();
   S.plan(feature, [{ title: '唯一', tests: ['只有一個'] }]);
+  S.approve();
   S.ok(['tdd']);
   S.finish(S.view().state.tdd.testId);
   return feature;

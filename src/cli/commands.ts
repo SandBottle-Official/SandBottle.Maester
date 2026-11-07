@@ -58,6 +58,7 @@ export const WRITE_COMMANDS: Record<string, WriteCommand> = {
   stage: store => store.setStage(readInput()),
   ask: store => store.ask(readInput()),
   answer: store => store.answer(readInput()),
+  approve: store => store.approve(),
   tdd: store => store.startTdd(),
   plan: store => store.writePlan(readInput()),
   phase: (store, _, repo) => store.phase(phaseInput(repo)),
