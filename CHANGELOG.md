@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.8.0 — 2026-11-08
+
+### Features
+
+- `maester approve` records a design approval given in the terminal, the same as the page's 「設計確定」 button.
+
+### Fixes
+
+- The council's Hard Gates are enforced by the CLI: `maester tdd` refuses until the council is at `TASK_BREAKDOWN`, the user approved the design, every decision is answered, and a Decision Table and final design exist.
+- `maester complete` with a commit already bound to another test is rejected with a hint to use `git commit --allow-empty`, instead of answering `already` while the step stayed put.
+- While the AI is handling an event, the page cannot start or resume another meeting, so the current feature never changes under the AI.
+- 「解除鎖定」 ends the stuck events on the server, so a new session no longer redelivers them and repeats the action.
+- The workbench no longer redraws the whole page while the AI works: usage updates only touch the usage chip, highlighted code is cached so it no longer flickers, a text selection holds off redraws, and the meeting list keeps its scroll position.
+
 ## 1.7.1 — 2026-11-06
 
 ### Fixes
