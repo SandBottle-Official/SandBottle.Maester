@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.0 — 2026-11-08
+
+### Features
+
+- The TDD workbench has a new layout: the Task's tests run as a metro line in the top bar (click a finished station to look back, the end squares switch Tasks), the current step takes the full width, and 「這一步學什麼」 and the rule's Given/When/Then open in a modal from the top bar. The chain moved to the side drawer.
+- Red, green and refactor are separate tabs, each showing two columns side by side (test and run output, test and green example, refactor direction and refactor example); the page switches to the tab of the new phase by itself, with a short transition.
+- The bottom bar is one row: the message box to the AI on the left, this step's actions and the 「AI 自動寫紅燈」 switch on the right.
+- Green and refactor examples can mark the old lines they delete or replace with `removed`: the page shows them red with −, next to the green + lines, and 「複製」 leaves them out.
+
+### Fixes
+
+- Code blocks no longer leave a gap under every line, so about a third more code fits on screen.
+
 ## 1.8.0 — 2026-11-08
 
 ### Features
