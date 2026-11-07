@@ -42,18 +42,27 @@ async function highlighter() {
   } catch { shiki = false; }
   return shiki;
 }
+// 重畫時同步套上已上色的結果：不然每次 SSE 更新程式碼都先閃成沒上色、高度跳動，捲動位置就跑掉
+const highlighted = new Map();
+function paint(b, html) {
+  const box = b.querySelector('.body');
+  box.innerHTML = html;
+  const added = (b.dataset.added || '').split(',').filter(Boolean).map(Number);
+  box.querySelectorAll('.line').forEach((l, i) => added.includes(i + 1) && l.classList.add('add'));
+}
 async function highlightAll() {
-  const blocks = /** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.code[data-raw]'));
-  if (!blocks.length) return;
+  const themeName = document.documentElement.dataset.theme === 'violet' ? 'pierre-light' : 'pierre-dark';
+  const key = b => `${themeName}|${b.dataset.lang}|${b.dataset.raw}`;
+  const blocks = [.../** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.code[data-raw]'))];
+  const pending = blocks.filter(b => highlighted.has(key(b)) ? (paint(b, highlighted.get(key(b))), false) : true);
+  if (!pending.length) return;
   const s = await highlighter();
   if (!s) return;
-  const theme = themes[document.documentElement.dataset.theme === 'violet' ? 'pierre-light' : 'pierre-dark'];
-  for (const b of blocks) {
+  for (const b of pending) {
     try {
-      const box = b.querySelector('.body');
-      box.innerHTML = await s.codeToHtml(b.dataset.raw, { lang: b.dataset.lang || 'text', theme });
-      const added = (b.dataset.added || '').split(',').filter(Boolean).map(Number);
-      box.querySelectorAll('.line').forEach((l, i) => added.includes(i + 1) && l.classList.add('add'));
+      const html = await s.codeToHtml(b.dataset.raw, { lang: b.dataset.lang || 'text', theme: themes[themeName] });
+      highlighted.set(key(b), html);
+      if (b.isConnected) paint(b, html);
     } catch {}
   }
 }
@@ -441,11 +450,12 @@ function render() {
     : tddCanvas(v, P) + side(viewing ? historyStep(v, P, ui.step.task, ui.step.test) : tddStep(v, P));
   // 同一個畫面重畫（選裁決、切換範例分頁、SSE 更新）時保留各 panel 的捲動位置，換畫面才回到頂端
   const ctx = `${ui.mode}|${ui.rt}|${ui.task}|${ui.step?.task}:${ui.step?.test}`;
-  const scrolls = ctx === lastCtx ? [...app.querySelectorAll('.work .panel')].map(p => p.scrollTop) : [];
+  const SCROLLERS = '.work .panel, .drawer';
+  const scrolls = ctx === lastCtx ? [...app.querySelectorAll(SCROLLERS)].map(p => p.scrollTop) : [];
   lastCtx = ctx;
   const typing = composer?.el.contains(document.activeElement);
   app.innerHTML = topBar(v, phase, P) + err + `<div class="work">${body}</div>` + (ui.roadOpen ? road(v, P) : '') + (ui.meetingOpen ? meetingModal() : '');
-  app.querySelectorAll('.work .panel').forEach((p, i) => { if (scrolls[i]) p.scrollTop = scrolls[i]; });
+  app.querySelectorAll(SCROLLERS).forEach((p, i) => { if (scrolls[i]) p.scrollTop = scrolls[i]; });
   // 輸入框是同一個節點搬回來，內容與 vim 狀態都在；搬動會失焦，所以補回焦點
   if (composer && !v.readonly) { app.querySelector('.dock')?.append(composer.el); if (typing) composer.focus(); }
   placeMeetingComposer();
@@ -561,6 +571,25 @@ else if (REPO) {
   const es = new EventSource(`/api/stream?${q}`);
   es.onopen = () => { connected = true; render(); };
   es.onerror = () => { connected = false; render(); };
-  // 使用者正在打字時不重畫，免得裁決的自由填寫被洗掉
-  es.onmessage = m => { view = JSON.parse(m.data); if (!app.querySelector('.decision textarea:focus')) render(); };
+  // AI 每用一次工具就回報用量：只有用量變時只換那顆 chip，不整頁重畫
+  const withoutAgent = v => JSON.stringify({ ...v, agent: null });
+  const patchAgent = () => {
+    const right = app.querySelector('header.top .right');
+    if (!right) return render();
+    right.querySelector('.agent-chip')?.remove();
+    right.insertAdjacentHTML('afterbegin', agentChip(view.agent));
+  };
+  // 使用者正在打字或選取文字時先不重畫，免得裁決的自由填寫或選取被洗掉；放開選取後補畫
+  let deferred = false;
+  const selecting = () => !!getSelection()?.toString() && app.contains(getSelection().anchorNode);
+  const renderWhenIdle = () => {
+    deferred = !!app.querySelector('.decision textarea:focus') || selecting();
+    if (!deferred) render();
+  };
+  document.addEventListener('selectionchange', () => { if (deferred && !selecting()) renderWhenIdle(); });
+  es.onmessage = m => {
+    const next = JSON.parse(m.data), onlyAgent = view && !deferred && withoutAgent(view) === withoutAgent(next);
+    view = next;
+    onlyAgent ? patchAgent() : renderWhenIdle();
+  };
 } else render();
